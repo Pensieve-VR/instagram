@@ -334,7 +334,7 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
   <div class="sheet who rule" data-tag="지키는 것">
    <ul>
     <li>공식 API 한도 안에서 — Instagram 하루 100건, Threads 하루 250건</li>
-    <li>미디어는 공개 URL(R2)로 — Meta가 가져가는 구조</li>
+    <li>미디어는 공개 URL(Workers KV)로 — Meta가 가져가는 구조</li>
     <li>처음 2주는 승인 후 게시, 그 뒤 자동 전환 제안</li>
     <li>비밀값(Meta 앱 키·AI 키·입장 암호)은 Cloudflare 변수에 직접 등록</li>
    </ul>
@@ -399,7 +399,7 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
    <rect class="box cf" x="40" y="140" width="460" height="64"/><text class="t" x="270" y="164" text-anchor="middle">Worker — 정적 화면 + API(Hono) + Cron + Queue 소비</text><text class="s" x="270" y="184" text-anchor="middle">15분마다 예약 확인 · 1시간마다 지표 · 매일 9시 요약</text>
    <!-- storage -->
    <rect class="box cf" x="40" y="240" width="140" height="56"/><text class="t" x="110" y="263" text-anchor="middle">D1</text><text class="s" x="110" y="281" text-anchor="middle">계정·역·일정·지표</text>
-   <rect class="box cf" x="200" y="240" width="140" height="56"/><text class="t" x="270" y="263" text-anchor="middle">R2</text><text class="s" x="270" y="281" text-anchor="middle">카드·영상 · 공개 URL</text>
+   <rect class="box cf" x="200" y="240" width="140" height="56"/><text class="t" x="270" y="263" text-anchor="middle">KV</text><text class="s" x="270" y="281" text-anchor="middle">카드·소재 이미지 · 공개 URL</text>
    <rect class="box cf" x="360" y="240" width="140" height="56"/><text class="t" x="430" y="263" text-anchor="middle">Cron</text><text class="s" x="430" y="281" text-anchor="middle">5분 게시 · 매일 09시 요약</text>
    <rect class="box cf" x="40" y="330" width="220" height="56"/><text class="t" x="150" y="353" text-anchor="middle">Browser Rendering</text><text class="s" x="150" y="371" text-anchor="middle">HTML 카드 템플릿 → PNG</text>
    <rect class="box ai" x="280" y="330" width="220" height="56"/><text class="t" x="390" y="353" text-anchor="middle">Claude API</text><text class="s" x="390" y="371" text-anchor="middle">각도 선택 · 카피 · 답글 초안 · 요약</text>
@@ -415,8 +415,8 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
    <path class="e" d="M150 296V330" marker-end="url(#ar)"/><path class="e" d="M390 296V330" marker-end="url(#ar)"/>
    <path class="e" d="M500 160H580" marker-end="url(#ar)"/><path class="e" d="M500 172 L540 172 L540 210 L580 210" marker-end="url(#ar)"/><path class="e dash" d="M500 184 L532 184 L532 260 L580 260" marker-end="url(#ar2)"/>
    <path class="e dash" d="M560 350 L540 350 L540 268 L340 268" marker-end="url(#ar2)"/>
-   <text class="s" x="400" y="318" text-anchor="middle">영상 → R2 (2차)</text>
-   <text class="s" x="680" y="294" text-anchor="middle">미디어는 R2 공개 URL에서 Meta가 가져간다</text>
+   <text class="s" x="400" y="318" text-anchor="middle">영상 → 저장소 (2차)</text>
+   <text class="s" x="680" y="294" text-anchor="middle">미디어는 KV 공개 URL에서 Meta가 가져간다</text>
   </svg>
   <figcaption><span class="legend"><i style="border-color:var(--ink-teal)"></i>Cloudflare</span><span class="legend"><i style="border-color:var(--ink-rose)"></i>Meta</span><span class="legend"><i style="border-color:var(--ink-violet)"></i>AI</span><span class="legend"><i style="border-style:dashed;border-color:var(--ink-muted)"></i>2차·선택</span></figcaption>
  </figure>
@@ -583,7 +583,7 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
    <li>Meta 연결(Instagram 로그인 API · Threads API, 60일 토큰 자동 갱신, 봉인 저장)</li>
    <li>소재 창고(JPG·글·링크 → 사실만 추림) · 슬롯 설정 · 각도 8개 순환</li>
    <li>이번 주 채우기 — 초안 → 다듬기 → 카드(JPEG) → 승인 대기/예약</li>
-   <li>5분 크론 게시(두 단계) · 실패 3회 재시도 후 실패 표시 · 매일 09시 지표·요약</li>
+   <li>5분 크론 게시(두 단계, 겹침 방지 점유) · 실패 3회 재시도 후 실패 표시 · 매일 09시 지표·요약</li>
    <li>노선도 홈 · 역 상세(승인·고치기·다시 쓰기·지금 게시·건너뜀) · 신호·기록</li>
   </ul></div>
   <div class="sheet"><h4>계획 — 2차</h4><ul>
@@ -601,8 +601,8 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
   <div class="sheet gate"><h4>사람이 한 번 — Cloudflare 변수</h4><ul>
    <li><code>PASSWORDS</code> — 이름=암호 (BM·브레인 스토밍과 같은 형식)</li>
    <li><code>ANTHROPIC_API_KEY</code> — 같은 키 그대로</li>
-   <li>(선택) <code>SESSION_SECRET</code> — 열쇠·토큰 봉인용 긴 임의 문자열</li>
-   <li>Claude가 대시보드에서: D1 <code>instagram</code> · R2 <code>pensieve-instagram-media</code> · Workers Builds(main) · 도메인 instagram.pensieve.kr</li>
+   <li><code>SESSION_SECRET</code> — Meta 토큰 봉인용 긴 임의 문자열(16자 이상, 필수) — 암호를 바꿔도 연결이 살아 있게</li>
+   <li>Claude가 대시보드에서 완료: D1 <code>instagram</code> · KV <code>instagram-media</code>(R2 대신 — 카드 등록 없이) · Workers Builds(main) · 도메인 instagram.pensieve.kr</li>
   </ul></div>
  </div>
  <details class="fb" data-fb="8 구현"><summary>이 장 피드백 — 2차 피드백은 실제로 써 본 흐름 기준으로</summary><textarea id="fb-c8" placeholder="막힌 곳 · 어색한 전환 · 빠진 것"></textarea></details>
@@ -644,7 +644,7 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
    {id:'B2',type:'pre',lab:'콘텐츠 생성\n각도 → 카피 → 카드 → 예약',ai:1},
    {id:'B3',type:'dec',lab:'승인 모드?'},
    {id:'B4',type:'man',lab:'승인 · 고치기 · 건너뜀'},
-   {id:'B5',type:'proc',lab:'예약 시각에 게시\nR2 URL → Meta API'},
+   {id:'B5',type:'proc',lab:'예약 시각에 게시\n공개 URL → Meta API'},
    {id:'B6',type:'dec',lab:'성과 상위\n20%?'},
    {id:'B7',type:'proc',lab:'광고 부스트\nMarketing API · 2차'},
    {id:'B8',type:'proc',lab:'감시\n지표 · 댓글 · 토큰 · 실패'},

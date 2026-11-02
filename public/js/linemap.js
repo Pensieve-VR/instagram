@@ -48,7 +48,7 @@ export function renderWeekMap({ weekStart, posts, channels, now, onStation, onPl
       g.append(svgEl('title', {}, '이 노선 채우기'));
       g.append(svgEl('circle', { cx: W - RIGHT + 18, cy: y, r: 11 }));
       g.append(svgEl('path', { d: `M${W - RIGHT + 13} ${y}h10M${W - RIGHT + 18} ${y - 5}v10` }));
-      g.addEventListener('click', () => onPlus(kind));
+      g.addEventListener('click', () => onPlus(kind, g));
       svg.append(g);
     }
   }

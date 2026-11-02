@@ -1,6 +1,6 @@
 // 홍보실 — 화면 한 장에 할 일 하나. 시작(이름) → 후보 → 게이트 ①②③ → 노선도.
 import { api, API, authed, clearAuth, ApiError } from './api.js';
-import { el, toast, busy, withBusy, openModal, closeModal, modalOpen, copyText, weekStart, DAY, hm, whenText, toLocalInput, fromLocalInput, ago, STATE_LABEL, ANGLE_LABEL, KIND_NAME, DOW } from './ui.js';
+import { el, svgEl, toast, busy, withBusy, openModal, closeModal, modalOpen, copyText, weekStart, DAY, hm, whenText, toLocalInput, fromLocalInput, ago, STATE_LABEL, ANGLE_LABEL, KIND_NAME, DOW } from './ui.js';
 import { renderWeekMap, emptyOverlay } from './linemap.js';
 
 const S = { st: null, sid: '', week: weekStart(Date.now()), timer: 0, pick: '' };
@@ -44,7 +44,7 @@ async function onLogin(e) {
 
 async function load(quiet = false) {
   try {
-    S.st = await api.state(S.sid);
+    S.st = await api.state(S.sid, S.week);
     if (S.st.service) { S.sid = S.st.service.id; history.replaceState(null, '', `#s=${S.sid}`); }
     $('top').hidden = false; app.hidden = false;
     render();
@@ -54,7 +54,7 @@ async function load(quiet = false) {
 }
 function schedulePoll() {
   clearTimeout(S.timer);
-  S.timer = setTimeout(async () => { if (!modalOpen()) await load(true); else schedulePoll(); }, 60000);
+  S.timer = setTimeout(async () => { if (!modalOpen() && !document.querySelector('.svc-menu, .start') && document.querySelector('.home')) await load(true); else schedulePoll(); }, 60000);
 }
 
 // ---------- 그리기 ----------
@@ -79,7 +79,7 @@ function removeDock() { document.querySelectorAll('.dock').forEach((d) => d.remo
 function renderTop() {
   const st = S.st; const box = $('svcPick'); box.innerHTML = '';
   if (st.service) {
-    const b = el('button', { class: 'svc-btn', type: 'button', 'aria-haspopup': 'menu' }, el('b', {}, st.service.name), st.service.handle ? el('small', {}, '@' + st.service.handle) : null, el('svg', { class: 'ic', viewBox: '0 0 24 24', html: '<path d="M6 9l6 6 6-6"/>' }));
+    const b = el('button', { class: 'svc-btn', type: 'button', 'aria-haspopup': 'menu' }, el('b', {}, st.service.name), st.service.handle ? el('small', {}, '@' + st.service.handle) : null, svgEl('svg', { class: 'ic', viewBox: '0 0 24 24', html: '<path d="M6 9l6 6 6-6"/>' }));
     b.addEventListener('click', () => toggleSvcMenu(box));
     box.append(b);
   }
@@ -205,9 +205,10 @@ function viewGateConnect(svc) {
     const r = el('div', { class: 'linkrow ' + kind }, el('i'), el('b', {}, KIND_NAME[kind]), ch ? el('span', { class: 'muted' }, '@' + ch.username) : null);
     if (ch && ch.status === 'linked') r.append(el('span', { class: 'ok' }, '연결됨'));
     else if (!st.caps[kind]) r.append(el('span', { class: 'muted', style: { marginLeft: 'auto', fontSize: '12.5px' } }, `Meta 앱 키 없음(${kind === 'ig' ? 'IG_APP_ID' : 'THREADS_APP_ID'})`));
+    else if (!st.caps.secret) r.append(el('span', { class: 'muted', style: { marginLeft: 'auto', fontSize: '12.5px' } }, 'SESSION_SECRET 없음'));
     else {
       const b = el('button', { class: 'btn sm ink', type: 'button' }, ch ? '다시 연결' : '연결');
-      b.addEventListener('click', async () => { try { const { url } = await withBusy(b, () => api.oauthStart(svc.id, kind)); location.href = url; } catch (err) { toast(err.message === 'no_app' ? 'Meta 앱 키가 아직 없습니다' : err.message, true); } });
+      b.addEventListener('click', () => connect(kind, b));
       r.append(b);
     }
     return r;
@@ -274,20 +275,25 @@ function viewHome() {
   const home = el('div', { class: 'home stage' });
   const pending = st.gates.signup && st.gates.connect && st.gates.profile ? 0 : 1;
   const chIg = st.channels.find((c) => c.kind === 'ig'); const chTh = st.channels.find((c) => c.kind === 'th');
-  const head = (kind, ch) => el('span', { class: `linehead ${kind}${ch && ch.hasToken && ch.status === 'linked' ? '' : ' off'}` }, el('i'), KIND_NAME[kind], el('small', {}, ch && ch.hasToken ? (ch.status === 'linked' ? '@' + ch.username : '만료') : '연결 안 됨'));
+  const head = (kind, ch) => {
+    const ok = ch && ch.hasToken && ch.status === 'linked';
+    const node = el(ok ? 'span' : 'button', { class: `linehead ${kind}${ok ? '' : ' off'}`, type: ok ? null : 'button', title: ok ? '' : '눌러서 연결' }, el('i'), KIND_NAME[kind], el('small', {}, ok ? '@' + ch.username : (ch && ch.hasToken ? '만료 — 다시 연결' : '연결 안 됨 — 연결')));
+    if (!ok) node.addEventListener('click', () => connect(kind, node));
+    return node;
+  };
   const title = el('h2', {}, weekTitle());
   const bar = el('div', { class: 'weekbar' },
-    el('div', { class: 'nav' }, el('button', { class: 'icon-btn', type: 'button', 'aria-label': '지난주', onclick: () => { S.week -= 7 * DAY; render(); } }, el('svg', { class: 'ic', viewBox: '0 0 24 24', html: '<path d="M15 6l-6 6 6 6"/>' })), el('button', { class: 'icon-btn', type: 'button', 'aria-label': '다음 주', onclick: () => { S.week += 7 * DAY; render(); } }, el('svg', { class: 'ic', viewBox: '0 0 24 24', html: '<path d="M9 6l6 6-6 6"/>' }))),
+    el('div', { class: 'nav' }, el('button', { class: 'icon-btn', type: 'button', 'aria-label': '지난주', onclick: () => { S.week -= 7 * DAY; load(true); } }, svgEl('svg', { class: 'ic', viewBox: '0 0 24 24', html: '<path d="M15 6l-6 6 6 6"/>' })), el('button', { class: 'icon-btn', type: 'button', 'aria-label': '다음 주', onclick: () => { S.week += 7 * DAY; load(true); } }, svgEl('svg', { class: 'ic', viewBox: '0 0 24 24', html: '<path d="M9 6l6 6-6 6"/>' }))),
     title,
-    S.week !== weekStart(Date.now()) ? el('button', { class: 'btn sm ghost today-btn', type: 'button', onclick: () => { S.week = weekStart(Date.now()); render(); } }, '이번 주') : null,
+    S.week !== weekStart(Date.now()) ? el('button', { class: 'btn sm ghost today-btn', type: 'button', onclick: () => { S.week = weekStart(Date.now()); load(true); } }, '이번 주') : null,
     el('div', { class: 'right' }, head('ig', chIg), head('th', chTh)),
   );
   const mapwrap = el('div', { class: 'mapwrap' });
   const weekPosts = st.posts.filter((p) => p.scheduled_at >= S.week && p.scheduled_at < S.week + 7 * DAY);
-  mapwrap.append(renderWeekMap({ weekStart: S.week, posts: st.posts, channels: st.channels, now: st.now, onStation: openPost, onPlus: (kind) => plan([kind]) }));
+  mapwrap.append(renderWeekMap({ weekStart: S.week, posts: st.posts, channels: st.channels, now: st.now, onStation: openPost, onPlus: (kind, node) => plan([kind], node) }));
   const linked = st.channels.some((c) => c.hasToken && c.status === 'linked');
   if (!weekPosts.length && S.week >= weekStart(Date.now())) {
-    mapwrap.append(emptyOverlay(linked ? (st.materials.length ? '이번 주 역 세우기' : '소재부터 넣기') : '계정 연결부터', () => { if (!linked) { S.forceHome = false; render(); } else if (!st.materials.length) openMaterials(); else plan(); }));
+    mapwrap.append(emptyOverlay(linked ? (st.materials.length ? '이번 주 역 세우기' : '소재부터 넣기') : '계정 연결부터', (e) => { if (!linked) connect(st.channels.some((c) => c.kind === 'ig' && c.hasToken) ? 'th' : 'ig', e.currentTarget); else if (!st.materials.length) openMaterials(); else plan(null, e.currentTarget); }));
   }
   home.append(bar, mapwrap, belowSheets());
   // 독 — 할 일 하나씩
@@ -301,6 +307,13 @@ function viewHome() {
   );
   document.body.append(dock);
   return home;
+}
+async function connect(kind, btn) {
+  const st = S.st;
+  if (!st.caps[kind]) return toast(`Meta 앱 키가 아직 없습니다(${kind === 'ig' ? 'IG_APP_ID' : 'THREADS_APP_ID'})`, true);
+  if (!st.caps.secret) return toast('SESSION_SECRET 이 아직 없습니다 — Cloudflare 변수에 긴 임의 문자열을 넣어 주세요', true);
+  try { const { url } = await withBusy(btn, () => api.oauthStart(st.service.id, kind)); location.href = url; }
+  catch (err) { toast(err.message === 'no_app' ? 'Meta 앱 키가 아직 없습니다' : err.message === 'no_secret' ? 'SESSION_SECRET 이 없습니다' : err.message, true); }
 }
 function weekTitle() { const a = S.week; const b = a + 6 * DAY; const ka = new Date(a + 9 * 3600e3); const kb = new Date(b + 9 * 3600e3); return `${ka.getUTCMonth() + 1}.${ka.getUTCDate()} – ${kb.getUTCMonth() + 1}.${kb.getUTCDate()}`; }
 
@@ -337,16 +350,21 @@ function belowSheets() {
   return wrap;
 }
 
-async function plan(channels) {
+let planning = false;
+async function plan(channels, btn) {
   const st = S.st;
+  if (planning) return;
   if (!st.caps.ai) return toast('AI 키가 없어 글을 만들 수 없습니다(ANTHROPIC_API_KEY)', true);
   const dockBtn = document.querySelector('.dock .btn.ink');
   toast('역을 세우는 중 — 글을 쓰고 다듬고 카드를 찍습니다');
+  planning = true;
   try {
-    const r = await withBusy(dockBtn, () => api.plan(st.service.id, { days: 7, channels }));
+    busy(btn, true);
+    const r = await withBusy(dockBtn, () => api.plan(st.service.id, { days: 7, channels, from: S.week }));
     toast(r.made.length ? `역 ${r.made.length}개를 세웠습니다 — ${st.settings.approval === 'auto' ? '시간이 되면 올라갑니다' : '눌러서 승인해 주세요'}` : '세울 자리가 없습니다 — 이미 다 찼거나 슬롯이 없습니다');
     await load(true);
   } catch (err) { toast('못 세웠습니다 — ' + (err.body && err.body.detail || err.message), true); }
+  finally { planning = false; busy(btn, false); }
 }
 
 // ---------- 역 상세 ----------
@@ -366,7 +384,7 @@ function openPost(post) {
       else if (p.card) card.append(el('div', { class: 'fake' }, el('div', { class: 'rail' }), el('h4', {}, p.card.headline), p.card.sub ? el('p', {}, p.card.sub) : null, (p.card.bullets || []).length ? el('ul', {}, ...p.card.bullets.map((b) => el('li', {}, b))) : null, el('div', { class: 'foot' }, '@' + svc.handle)));
       else card.append(el('div', { class: 'none' }, '이미지 없음', el('small', {}, '소재 이미지를 올리거나 카드 렌더(BROWSER)를 켜 주세요')));
       pv.append(card);
-      if (!p.media[0] && p.card) pv.append(el('p', { class: 'muted', style: { fontSize: '12.5px', marginTop: '8px' } }, '카드 미리보기 — 실제 이미지는 게시 직전에 찍힙니다(렌더가 켜져 있을 때)'));
+      if (!p.media[0] && p.card) pv.append(el('p', { class: 'muted', style: { fontSize: '12.5px', marginTop: '8px' } }, '카드 미리보기 — 이미지가 아직 없습니다. 「다시 쓰기」를 누르면 카드를 찍습니다(렌더가 켜져 있을 때)'));
     } else {
       pv.append(el('div', { class: 'th-post' }, el('div', { class: 'av' }, (svc.name || 'P').slice(0, 1)), el('div', {}, el('div', { class: 'who' }, svc.handle, el('small', {}, hm(p.scheduled_at))), el('div', { class: 'body' }, p.text))));
     }
@@ -387,7 +405,7 @@ function openPost(post) {
     }
     // 동작
     const acts = el('div', { class: 'acts' });
-    const editable = !['posted', 'publishing'].includes(p.state);
+    const editable = !['posted', 'publishing', 'skipped'].includes(p.state);
     const patch = () => ({ hook: hook.value, text: text.value, hashtags: tags ? tags.value : undefined, scheduled_at: fromLocalInput(when.value) || p.scheduled_at });
     const run = async (btn, fn, msg) => { try { const r = await withBusy(btn, fn); if (msg) toast(msg); await load(true); if (r && r.post) draw(r.post); else closeModal(); } catch (err) { toast(err.message === 'bad_transition' ? '지금 상태에서는 할 수 없습니다' : '실패 — ' + (err.body && err.body.detail || err.message), true); } };
     if (editable) {
@@ -399,6 +417,7 @@ function openPost(post) {
       acts.append(el('button', { class: 'btn', type: 'button', onclick: (e) => { const b = e.currentTarget; if (b.dataset.sure) run(b, () => api.postNow(svc.id, p.id), '보냈습니다'); else { b.dataset.sure = '1'; b.textContent = '정말 지금?'; setTimeout(() => { delete b.dataset.sure; b.textContent = '지금 게시'; }, 2500); } } }, '지금 게시'));
       acts.append(el('button', { class: 'btn ghost danger', type: 'button', onclick: (e) => run(e.currentTarget, () => api.post(svc.id, p.id, { action: 'skip' }), '건너뜁니다') }, '건너뜀'));
     } else if (p.state === 'publishing') acts.append(el('span', { class: 'muted', style: { fontSize: '13.5px' } }, '게시 중 — 5분 안에 상태가 바뀝니다'));
+    else if (p.state === 'skipped') acts.append(el('span', { class: 'muted', style: { fontSize: '13.5px' } }, '건너뛴 자리 — 이 시각에는 올리지 않습니다'));
     [hook, text, when, tags].forEach((x) => { if (x) x.disabled = !editable; });
     grid.append(pv, el('div', {}, ed, acts));
     box.append(grid);

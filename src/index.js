@@ -7,6 +7,8 @@ import * as meta from '../lib/meta.js';
 import * as ops from '../lib/ops.js';
 import { mergeSettings, signals, weekStart, DAY, transition } from '../lib/plan.js';
 import { monogramSvg, monogramHtml, renderJpeg, renderReady, toJpeg } from '../lib/render.js';
+import { sealReady } from '../lib/crypto.js';
+import { mediaReady, getMedia, putMedia, deleteMedia, deletePrefix } from '../lib/media.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -28,9 +30,10 @@ export default {
 
 async function cron(env, expr) {
   try {
-    const due = await ops.publishDue(env);
-    if (due.length) console.log('publishDue', JSON.stringify(due));
-    if (expr === '0 0 * * *') { // 09:00 KST — 지표·요약·토큰
+    if (expr !== '0 0 * * *') { // 5분 틱 — 게시. 00:00 UTC 에 두 크론이 겹쳐도 게시는 한쪽만 돈다
+      const due = await ops.publishDue(env);
+      if (due.length) console.log('publishDue', JSON.stringify(due));
+    } else { // 09:00 KST — 지표·요약·토큰
       await ops.refreshTokens(env);
       for (const id of await ops.allServiceIds(env)) {
         try { await ops.dailySummary(env, id); } catch (e) { console.error('daily', id, e && e.message); }
@@ -41,12 +44,12 @@ async function cron(env, expr) {
 
 // ---------- 공개 미디어 (Meta 가 가져간다) ----------
 async function media(request, env, url) {
-  const key = decodeURIComponent(url.pathname.slice('/media/'.length));
-  if (!/^[a-z]\/s[a-z0-9]+\/[A-Za-z0-9._-]+$/.test(key) || !env.MEDIA) return new Response('not found', { status: 404 });
-  const obj = await env.MEDIA.get(key);
+  let key = '';
+  try { key = decodeURIComponent(url.pathname.slice('/media/'.length)); } catch { return new Response('not found', { status: 404 }); }
+  if (!/^[a-z]\/s[a-z0-9]+\/[A-Za-z0-9._-]+$/.test(key) || !mediaReady(env)) return new Response('not found', { status: 404 });
+  const obj = await getMedia(env, key);
   if (!obj) return new Response('not found', { status: 404 });
-  const h = new Headers(); obj.writeHttpMetadata(h);
-  h.set('cache-control', 'public, max-age=31536000, immutable'); h.set('etag', obj.httpEtag); h.set('x-content-type-options', 'nosniff');
+  const h = new Headers({ 'content-type': obj.contentType, 'content-length': String(obj.body.byteLength), 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff', 'access-control-allow-origin': '*' });
   return new Response(request.method === 'HEAD' ? null : obj.body, { headers: h });
 }
 
@@ -57,7 +60,7 @@ async function api(request, env, ctx, url) {
   const origin = publicOrigin(request, env);
 
   if (seg[0] === 'health' && m === 'GET') {
-    return ok({ ai: aiReady(env), render: renderReady(env), store: !!env.DB, media: !!env.MEDIA, passwords: configured(env), ig: meta.appReady(env, 'ig'), th: meta.appReady(env, 'th'), mock: env.MOCK_AI === '1', model: env.CLAUDE_MODEL || DEFAULT_MODEL, origin });
+    return ok({ ai: aiReady(env), render: renderReady(env), store: !!env.DB, media: mediaReady(env), passwords: configured(env), secret: sealReady(env), ig: meta.appReady(env, 'ig'), th: meta.appReady(env, 'th'), mock: env.MOCK_AI === '1', model: env.CLAUDE_MODEL || DEFAULT_MODEL, origin });
   }
   if (seg[0] === 'login' && m === 'POST') {
     if (!originOk(request, env)) return err(403, 'forbidden');
@@ -76,12 +79,13 @@ async function api(request, env, ctx, url) {
   if (m !== 'GET' && !originOk(request, env)) return err(403, 'forbidden');
   const { space } = who;
 
-  if (seg[0] === 'state' && m === 'GET') return state(env, space, url.searchParams.get('service') || '', origin);
+  if (seg[0] === 'state' && m === 'GET') return state(env, space, url.searchParams.get('service') || '', origin, Number(url.searchParams.get('week')) || 0);
 
   if (seg[0] === 'oauth' && seg[2] === 'start' && m === 'GET') {
     const kind = seg[1]; const sid = url.searchParams.get('service') || '';
     if (!meta.KINDS[kind] || !isId(sid, 's')) return err(400, 'bad_request');
     if (!meta.appReady(env, kind)) return err(503, 'no_app', { kind });
+    if (!sealReady(env)) return err(503, 'no_secret'); // 토큰을 봉인할 고정 비밀이 없으면 연결을 받지 않는다
     const service = await ops.getService(env, space, sid); if (!service) return err(404, 'not_found');
     const stateToken = await makeState(env, space, sid, kind);
     return ok({ url: meta.authUrl(env, kind, `${origin}/api/oauth/${kind}/callback`, stateToken) });
@@ -110,6 +114,7 @@ async function api(request, env, ctx, url) {
     if (seg.length === 2 && m === 'DELETE') {
       const d = await db(env);
       await d.batch(['posts', 'materials', 'channels', 'gates', 'events', 'daily'].map((t) => d.prepare(`DELETE FROM ${t} WHERE service_id=?`).bind(sid)).concat([d.prepare('DELETE FROM services WHERE id=?').bind(sid)]));
+      if (mediaReady(env)) ctx.waitUntil((async () => { await deletePrefix(env, `m/${sid}/`); await deletePrefix(env, `c/${sid}/`); })().catch((e) => console.error('media cleanup', e && e.message)));
       return ok({ deleted: sid });
     }
     if (sub === 'candidates' && m === 'POST') { if (!aiReady(env)) return err(503, 'no_key'); return ok(await ops.genCandidates(env, service)); }
@@ -137,8 +142,10 @@ async function api(request, env, ctx, url) {
     if (sub === 'brief' && m === 'POST') {
       const { body, error } = await readJson(request, 20000); if (error) return err(400, error);
       const d = await db(env);
+      let home = body.homepage != null ? String(body.homepage).trim().slice(0, 300) : null;
+      if (home && !/^https?:\/\//i.test(home)) home = 'https://' + home;
       await d.prepare('UPDATE services SET name=COALESCE(NULLIF(?, \'\'), name), oneliner=COALESCE(?, oneliner), brief=COALESCE(?, brief), homepage=COALESCE(?, homepage), bio=COALESCE(?, bio), updated=? WHERE id=?')
-        .bind(String(body.name || '').trim().slice(0, 60), body.oneliner != null ? String(body.oneliner).slice(0, 80) : null, body.brief != null ? String(body.brief).slice(0, 2000) : null, body.homepage != null ? String(body.homepage).slice(0, 300) : null, body.bio != null ? String(body.bio).slice(0, 150) : null, Date.now(), sid).run();
+        .bind(String(body.name || '').trim().slice(0, 60), body.oneliner != null ? String(body.oneliner).slice(0, 80) : null, body.brief != null ? String(body.brief).slice(0, 2000) : null, home, body.bio != null ? String(body.bio).slice(0, 150) : null, Date.now(), sid).run();
       return ok({ service: await ops.getService(env, space, sid) });
     }
     if (sub === 'settings' && m === 'POST') {
@@ -155,9 +162,10 @@ async function api(request, env, ctx, url) {
         const d = await db(env);
         const row = await d.prepare('SELECT r2_key FROM materials WHERE id=? AND service_id=?').bind(seg[3], sid).first();
         if (!row) return err(404, 'not_found');
-        if (row.r2_key && env.MEDIA) await env.MEDIA.delete(row.r2_key);
+        const detached = await ops.detachMaterial(env, sid, row.r2_key);
+        await deleteMedia(env, row.r2_key);
         await d.prepare('DELETE FROM materials WHERE id=?').bind(seg[3]).run();
-        return ok({ deleted: seg[3] });
+        return ok({ deleted: seg[3], detached });
       }
     }
     if (sub === 'plan' && m === 'POST') {
@@ -165,7 +173,8 @@ async function api(request, env, ctx, url) {
       const { body } = await readJson(request, 2000);
       const days = Math.min(14, Math.max(1, Number(body && body.days) || 7));
       const only = body && Array.isArray(body.channels) ? body.channels.filter((k) => k === 'ig' || k === 'th') : null;
-      const made = await ops.planWeek(env, service, { origin, days, channels: only && only.length ? only : null });
+      const fromMs = Math.max(Date.now(), Number(body && body.from) || 0); // 다른 주를 보고 있으면 그 주부터, 지난 시각은 세우지 않는다
+      const made = await ops.planWeek(env, service, { origin, days, fromMs, channels: only && only.length ? only : null });
       return ok({ made });
     }
     if (sub === 'posts' && isId(seg[3], 'p')) {
@@ -177,11 +186,12 @@ async function api(request, env, ctx, url) {
         if (!['approve', 'hold', 'skip', 'retry', 'edit'].includes(action)) return err(400, 'bad_action');
         return ok({ post: await ops.actPost(env, service, post, action, body) });
       }
-      if (m === 'POST' && seg[4] === 'now') { // 지금 게시 — 승인 뒤 바로 보낸다
+      if (m === 'POST' && seg[4] === 'now') { // 지금 게시 — 처음부터(새 컨테이너), 크론과 겹치지 않게 점유
         if (!['draft', 'review', 'scheduled', 'failed'].includes(post.state)) return err(409, 'bad_transition');
         const d = await db(env);
-        await d.prepare('UPDATE posts SET state=?, scheduled_at=?, error=?, updated=? WHERE id=?').bind('publishing', Date.now(), '', Date.now(), post.id).run();
-        const result = await ops.publishPost(env, { ...post, state: 'publishing', scheduled_at: Date.now(), error: '' });
+        const r = await d.prepare("UPDATE posts SET state='publishing', scheduled_at=?, error='', container_id='', attempts=0, updated=? WHERE id=? AND state=?").bind(Date.now(), Date.now(), post.id, post.state).run();
+        if (!(r.meta && r.meta.changes)) return err(409, 'bad_transition');
+        const result = await ops.publishPost(env, { ...post, state: 'publishing', scheduled_at: Date.now(), error: '', container_id: '', attempts: 0 });
         return ok({ result, post: await ops.getPost(env, sid, post.id) });
       }
       if (m === 'POST' && seg[4] === 'regenerate') {
@@ -191,7 +201,11 @@ async function api(request, env, ctx, url) {
         const recent = (await ops.postsOf(env, sid, Date.now() - 21 * DAY, Date.now() + 14 * DAY)).filter((p) => p.id !== post.id && p.state !== 'skipped').slice(-8);
         const gen = await ops.generatePost(env, service, post.channel, { angle: post.angle, materials, recent: recent.map((p) => ({ angle: p.angle, hook: p.hook })), when: new Date(post.scheduled_at).toISOString(), hasImage: post.media.length > 0 });
         const d = await db(env);
-        await d.prepare('UPDATE posts SET hook=?, text=?, hashtags=?, card=?, updated=? WHERE id=?').bind(gen.hook, gen.text, gen.hashtags.join(' '), gen.card ? JSON.stringify(gen.card) : post.card ? JSON.stringify(post.card) : '', Date.now(), post.id).run();
+        const card = gen.card || post.card || null;
+        let media = post.media; let error = post.error;
+        try { media = await ops.rerenderCard(env, service, { ...post, card }, origin); if (media.length) error = ''; }
+        catch (e) { error = '카드 렌더 실패 — ' + String(e.message).slice(0, 120); }
+        await d.prepare('UPDATE posts SET hook=?, text=?, hashtags=?, card=?, alt=?, media=?, error=?, updated=? WHERE id=?').bind(gen.hook, gen.text, gen.hashtags.join(' '), card ? JSON.stringify(card) : '', gen.alt || post.alt || '', JSON.stringify(media), error, Date.now(), post.id).run();
         await event(env, sid, 'post.regenerated', gen.hook);
         return ok({ post: await ops.getPost(env, sid, post.id) });
       }
@@ -206,14 +220,15 @@ async function api(request, env, ctx, url) {
   return err(404, 'not_found');
 }
 
-async function state(env, space, sid, origin) {
+async function state(env, space, sid, origin, weekMs = 0) {
   const services = await ops.listServices(env, space);
-  const id = isId(sid, 's') ? sid : (services[services.length - 1] || {}).id;
-  const caps = { ai: aiReady(env), render: renderReady(env), ig: meta.appReady(env, 'ig'), th: meta.appReady(env, 'th'), media: !!env.MEDIA, origin };
+  const last = (services[services.length - 1] || {}).id;
+  const id = isId(sid, 's') && services.some((s) => s.id === sid) ? sid : last; // 없는 주소면 마지막 서비스로
+  const caps = { ai: aiReady(env), render: renderReady(env), ig: meta.appReady(env, 'ig'), th: meta.appReady(env, 'th'), media: mediaReady(env), secret: sealReady(env), origin };
   if (!id) return ok({ services, service: null, caps });
   const service = await ops.getService(env, space, id);
   if (!service) return ok({ services, service: null, caps });
-  const now = Date.now(); const ws = weekStart(now);
+  const now = Date.now(); const ws = weekMs > 0 ? weekStart(weekMs) : weekStart(now);
   const [channels, gates, materials, posts, daily, events] = await Promise.all([
     ops.channelsOf(env, id), ops.gatesOf(env, id), ops.materialsOf(env, id),
     ops.postsOf(env, id, ws - 7 * DAY, ws + 21 * DAY), ops.latestDaily(env, id), ops.recentEvents(env, id, 20),
@@ -258,8 +273,8 @@ async function oauthCallback(request, env, url, kind, origin) {
 async function addMaterial(request, env, service, origin) {
   const ct = request.headers.get('content-type') || '';
   if (ct.startsWith('multipart/form-data')) {
-    if ((Number(request.headers.get('content-length')) || 0) > 9 * 1024 * 1024) return err(413, 'too_large');
-    if (!env.MEDIA) return err(503, 'no_media');
+    if ((Number(request.headers.get('content-length')) || 0) > 8 * 1024 * 1024) return err(413, 'too_large', { hint: '8MB 까지' });
+    if (!mediaReady(env)) return err(503, 'no_media');
     const form = await request.formData();
     const file = form.get('file');
     if (!file || typeof file === 'string') return err(400, 'file_required');
@@ -273,13 +288,16 @@ async function addMaterial(request, env, service, origin) {
       const id = await ops.addMaterial(env, service, { type: 'text', title, text, content: text });
       return ok({ id }, 201);
     }
+    const sniff = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff ? 'image/jpeg' : bytes[0] === 0x89 && bytes[1] === 0x50 ? 'image/png' : (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) ? 'image/webp' : '';
+    if (!sniff) return err(415, 'unsupported', { hint: '이미지 파일이 아닙니다(JPG·PNG·WebP 만)' });
+    mime = sniff; // 브라우저가 말한 종류가 아니라 실제 바이트로
     if (mime !== 'image/jpeg') { // Instagram 은 JPEG 만 — 바꿀 수 있으면 바꾸고, 못 바꾸면 알린다(조용히 받지 않는다)
       const jpg = await toJpeg(env, bytes, mime);
       if (!jpg) return err(415, 'jpeg_required', { hint: 'Instagram 은 JPG 만 받습니다 — JPG 로 바꿔 올려 주세요(카드 렌더가 켜지면 자동 변환)' });
       bytes = jpg; mime = 'image/jpeg';
     }
     const key = `m/${service.id}/${idFor('i')}.jpg`;
-    await env.MEDIA.put(key, bytes, { httpMetadata: { contentType: mime } });
+    await putMedia(env, key, bytes, mime);
     const id = await ops.addMaterial(env, service, { type: 'image', title, r2_key: key, mime, content: `이미지 소재: ${title}` });
     return ok({ id, url: ops.mediaUrl(origin, key) }, 201);
   }

@@ -34,7 +34,7 @@ export const api = {
     API.token = r.token; API.space = r.space; API.name = r.name; saveAuth();
     return r;
   },
-  state: (service) => call('GET', '/api/state' + (service ? `?service=${encodeURIComponent(service)}` : '')),
+  state: (service, week) => call('GET', '/api/state?' + new URLSearchParams({ ...(service ? { service } : {}), ...(week ? { week: String(week) } : {}) })),
   createService: (body) => call('POST', '/api/services', body),
   deleteService: (id) => call('DELETE', `/api/services/${id}`),
   candidates: (id) => call('POST', `/api/services/${id}/candidates`),

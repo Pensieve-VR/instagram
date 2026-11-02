@@ -89,6 +89,15 @@ step('크론 — 연결 없는 노선의 예약 글은 fail-loud(실패 + 기록
   assert.ok(st.data.events.some((e) => e.kind === 'post.failed'));
   const retry = await j('POST', `/api/services/${sid}/posts/${th.id}`, { action: 'retry' }); assert.equal(retry.data.post.state, 'scheduled'); }
 
+step('소재 삭제 — 그 이미지를 쓰던 글은 승인 대기로 (응답에 detached)');
+{ const st = await j('GET', `/api/state?service=${sid}`); const txt = st.data.materials.find((x) => x.type === 'text');
+  const r = await j('DELETE', `/api/services/${sid}/materials/${txt.id}`); assert.equal(r.status, 200); assert.equal(r.data.detached, 0);
+  assert.equal((await j('DELETE', `/api/services/${sid}/materials/m000000notreal`)).status, 404); }
+
+step('주 이동 — week 파라미터로 다른 주의 글을 받는다');
+{ const now = Date.now(); const far = await j('GET', `/api/state?service=${sid}&week=${now + 40 * 86400000}`); assert.equal(far.status, 200); assert.equal(far.data.posts.length, 0);
+  const here = await j('GET', `/api/state?service=${sid}&week=${now}`); assert.ok(here.data.posts.length >= 1); }
+
 step('지금 게시 — 연결 없음은 실패로 답한다');
 { const th = posts.find((p) => p.channel === 'th') || posts[0];
   const r = await j('POST', `/api/services/${sid}/posts/${th.id}/now`, {}); assert.equal(r.status, 200); assert.equal(r.data.result, 'failed'); }
@@ -99,6 +108,9 @@ step('미디어 경로 — 없는 키는 404, 이상한 키는 404');
 step('OAuth 시작 — 앱 키 없으면 503, 되돌아오기 잘못된 state 는 리다이렉트');
 { const r = await j('GET', `/api/oauth/ig/start?service=${sid}`); assert.equal(r.status, 503);
   const cb = await fetch(BASE + '/api/oauth/ig/callback?state=junk&code=x', { redirect: 'manual' }); assert.equal(cb.status, 302); assert.match(cb.headers.get('location'), /oauth=bad_state/); }
+
+step('없는 서비스 주소 → 마지막 서비스로 대체');
+{ const r = await j('GET', '/api/state?service=s000000notreal'); assert.equal(r.status, 200); assert.equal(r.data.service.id, sid); }
 
 step('요약 · 기록');
 { const r = await j('POST', `/api/services/${sid}/sync`, {}); assert.equal(r.status, 200); assert.ok(r.data.daily && r.data.daily.day);

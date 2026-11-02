@@ -34,13 +34,17 @@ test('OAuth state 왕복', async () => {
   assert.equal(await readState({ PASSWORDS: 'x' }, st), null);
 });
 
-test('토큰 봉인 왕복 · 다른 열쇠로는 못 연다', async () => {
-  const sealed = await seal(env, 'IGQVJ…token한글');
+test('토큰 봉인 왕복 · 다른 열쇠로는 못 연다 · 비밀 없으면 거절(암호를 바꿔도 토큰이 살아야 한다)', async () => {
+  const senv = { ...env, SESSION_SECRET: 'a-long-fixed-secret-value-1234' };
+  const sealed = await seal(senv, 'IGQVJ…token한글');
   assert.notEqual(sealed, 'IGQVJ…token한글');
-  assert.equal(await open(env, sealed), 'IGQVJ…token한글');
-  await assert.rejects(open({ PASSWORDS: 'other' }, sealed));
-  await assert.rejects(open(env, 'AAAA'), /sealed_too_short/);
-  assert.equal(await open(env, ''), '');
+  assert.equal(await open(senv, sealed), 'IGQVJ…token한글');
+  assert.equal(await open({ ...senv, PASSWORDS: 'changed=pw' }, sealed), 'IGQVJ…token한글'); // 암호가 바뀌어도 열린다
+  await assert.rejects(open({ ...senv, SESSION_SECRET: 'another-long-secret-value-5678' }, sealed));
+  await assert.rejects(open(senv, 'AAAA'), /sealed_too_short/);
+  assert.equal(await open(senv, ''), '');
+  await assert.rejects(seal(env, 'x'), /no_secret/);
+  await assert.rejects(seal({ ...env, SESSION_SECRET: 'short' }, 'x'), /no_secret/);
 });
 
 test('extractJson — 울타리·앞뒤 말·중첩·문자열 속 괄호', () => {

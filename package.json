@@ -4,7 +4,7 @@
   "type": "module",
   "description": "홍보실 — 펜시브 서비스의 Instagram·Threads 계정을 개설부터 게시·감시까지 돌리는 운영 도구",
   "scripts": {
-    "dev": "wrangler dev --var MOCK_AI:1 --var \"PASSWORDS:나=test\"",
+    "dev": "wrangler dev --var MOCK_AI:1 --var \"PASSWORDS:나=test\" --var SESSION_SECRET:dev-only-secret-value-0123456789",
     "test": "node --test tests/*.test.js",
     "check": "node scripts/check.mjs",
     "build": "node scripts/stamp.mjs",
