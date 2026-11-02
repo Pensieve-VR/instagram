@@ -68,8 +68,8 @@ function render() {
   if (!S.forceHome) {
     if (!svc.handle) return app.append(viewPick(svc));
     if (!gates.signup) return app.append(viewGateSignup(svc));
-    if (!gates.connect) return app.append(viewGateConnect(svc));
     if (!gates.profile) return app.append(viewGateProfile(svc));
+    if (!gates.connect) return app.append(viewGateConnect(svc));
   }
   app.append(viewHome());
   schedulePoll();
@@ -233,9 +233,9 @@ function viewPick(svc) {
 }
 
 // ---------- 게이트 공통 ----------
-function gateCard({ n, title, mins, children, acts }) {
+function gateCard({ n, title, mins, chip, children, acts }) {
   return el('div', { class: 'center' }, el('section', { class: 'gatecard enter' },
-    el('div', {}, el('span', { class: 'chip gate' }, `게이트 ${['①', '②', '③'][n - 1]} · 사람 ${mins}`)),
+    el('div', {}, el('span', { class: 'chip gate' }, chip || `게이트 ${['①', '②', '③'][n - 1]} · 사람 ${mins}`)),
     el('h2', {}, title), ...children, el('div', { class: 'acts' }, ...acts)));
 }
 const copyRow = (text, one = false) => el('div', { class: 'copyrow' }, el('code', { class: one ? 'one' : '' }, text), el('button', { class: 'btn sm', type: 'button', onclick: () => copyText(text) }, '복사'));
@@ -263,15 +263,32 @@ function viewGateSignup(svc) {
   });
 }
 
-// 게이트 ② 연결 — 클릭만. 끝나면 노선이 생긴다.
+// 게이트 ③ 연결 — 클릭만. 끝나면 노선이 생긴다. 관리자 설정(Meta 앱)이 아직이면 막지 않고 둘러보게 한다.
 function viewGateConnect(svc) {
   const st = S.st;
+  const adminReady = (st.caps.ig || st.caps.th) && st.caps.secret;
+  const browse = el('button', { class: 'btn ink', type: 'button', onclick: () => { S.forceHome = true; render(); } }, '먼저 둘러보기');
+  if (!adminReady) {
+    return gateCard({
+      n: 3, title: '연결 준비가 한 번 남았습니다', chip: '게이트 ③ · 관리자 한 번',
+      children: [
+        el('p', {}, '홍보실이 Instagram·Threads 에 글을 올리려면 Meta 쪽 출입증(앱)이 하나 필요합니다. 관리자가 한 번 만들어 두면, 이 화면에서 계정마다 「연결」 버튼 하나로 끝납니다.'),
+        el('p', {}, '그동안 소재 넣기·운영 규칙 정하기는 먼저 해 둘 수 있습니다.'),
+        el('details', { class: 'admin' }, el('summary', {}, '관리자용 — 출입증 만드는 법'),
+          el('ol', {},
+            el('li', {}, 'developers.facebook.com › 앱 만들기 → Instagram(Instagram 로그인) · Threads API 추가'),
+            el('li', {}, '되돌아올 주소 두 개 등록 — ', el('code', {}, `${st.caps.origin}/api/oauth/ig/callback`), ' · ', el('code', {}, `${st.caps.origin}/api/oauth/th/callback`)),
+            el('li', {}, '앱 ID·시크릿을 Cloudflare › pensieve-instagram › 빌드 › 변수 및 암호에 비밀로 — IG_APP_ID · IG_APP_SECRET · THREADS_APP_ID · THREADS_APP_SECRET'),
+            el('li', {}, '앱 역할 › 테스터에 연결할 Instagram 계정 추가(심사 전까지)'))),
+      ],
+      acts: [browse],
+    });
+  }
   const row = (kind) => {
     const ch = st.channels.find((c) => c.kind === kind && c.hasToken);
     const r = el('div', { class: 'linkrow ' + kind }, el('i'), el('b', {}, KIND_NAME[kind]), ch ? el('span', { class: 'muted' }, '@' + ch.username) : null);
     if (ch && ch.status === 'linked') r.append(el('span', { class: 'ok' }, '연결됨'));
-    else if (!st.caps[kind]) r.append(el('span', { class: 'muted', style: { marginLeft: 'auto', fontSize: '12.5px' } }, `Meta 앱 키 없음(${kind === 'ig' ? 'IG_APP_ID' : 'THREADS_APP_ID'})`));
-    else if (!st.caps.secret) r.append(el('span', { class: 'muted', style: { marginLeft: 'auto', fontSize: '12.5px' } }, 'SESSION_SECRET 없음'));
+    else if (!st.caps[kind]) r.append(el('span', { class: 'muted', style: { marginLeft: 'auto', fontSize: '12.5px' } }, '준비 중'));
     else {
       const b = el('button', { class: 'btn sm ink', type: 'button' }, ch ? '다시 연결' : '연결');
       b.addEventListener('click', () => connect(kind, b));
@@ -283,10 +300,11 @@ function viewGateConnect(svc) {
   const next = el('button', { class: 'btn ink', type: 'button', disabled: !anyLinked }, '다음');
   next.addEventListener('click', async () => { try { await withBusy(next, () => api.gate(svc.id, 'connect', true)); await load(); } catch (err) { toast(err.message, true); } });
   return gateCard({
-    n: 2, title: '계정을 홍보실에 연결해 주세요', mins: '1분',
+    n: 3, title: '계정을 홍보실에 연결해 주세요', mins: '1분',
     children: [
-      el('p', {}, '누르면 Meta 로그인 창이 열립니다. 허용하면 60일짜리 열쇠가 저장되고, 만료 전에 홍보실이 스스로 갱신합니다. Instagram 은 프로페셔널 계정이어야 합니다.'),
+      el('p', {}, '누르면 Meta 로그인 창이 열립니다. 허용하면 끝 — 열쇠는 홍보실이 알아서 갱신합니다.'),
       el('div', { class: 'links' }, row('ig'), row('th')),
+      el('p', { class: 'muted', style: { fontSize: '13px' } }, '연결이 안 되면: Instagram 이 프로페셔널 계정인지, 관리자가 이 계정을 Meta 앱 테스터로 넣었는지 확인해 주세요.'),
     ],
     acts: [next, later()],
   });
@@ -312,7 +330,7 @@ function viewGateProfile(svc) {
           st.settings.profile = r.profile; svc.brief = brief.value.trim(); svc.homepage = home.value.trim(); step = 'pick'; draw();
         } catch (err) { toast(err.message === 'no_key' ? 'AI 키가 없습니다' : err.message === 'brief_required' ? '설명을 조금 더 적어 주세요' : '못 만들었습니다 — ' + err.message, true); }
       });
-      wrap.append(gateCard({ n: 3, title: '어떤 서비스인가요?', mins: '1분', children: [dots('desc'), el('p', {}, '여기 적은 내용으로만 소개문을 만듭니다. 없는 기능은 쓰지 않습니다.'), brief, home], acts: [gen, later()] }));
+      wrap.append(gateCard({ n: 2, title: '어떤 서비스인가요?', mins: '1분', children: [dots('desc'), el('p', {}, '여기 적은 내용으로만 소개문을 만듭니다. 없는 기능은 쓰지 않습니다.'), brief, home], acts: [gen, later()] }));
       return;
     }
     if (step === 'pick') {
@@ -329,7 +347,7 @@ function viewGateProfile(svc) {
       const use = el('button', { class: 'btn ink', type: 'button' }, '이걸로');
       use.addEventListener('click', async () => { try { const r = await withBusy(use, () => api.bio(svc.id, ta.value.trim())); st.settings.profile = r.profile; svc.bio = r.profile.bio; step = 'paste'; draw(); } catch (err) { toast(err.message === 'bio_too_long' ? '150자를 넘었습니다' : err.message === 'bio_required' ? '소개문이 비었습니다' : err.message, true); } });
       const back = el('button', { class: 'btn ghost', type: 'button', onclick: () => { step = 'desc'; draw(); } }, '설명 고치기');
-      wrap.append(gateCard({ n: 3, title: '소개문을 골라 주세요', mins: '1분', children: [dots('pick'), list, ta, count], acts: [use, back, later()] }));
+      wrap.append(gateCard({ n: 2, title: '소개문을 골라 주세요', mins: '1분', children: [dots('pick'), list, ta, count], acts: [use, back, later()] }));
       return;
     }
     const p = prof();
@@ -346,17 +364,17 @@ function viewGateProfile(svc) {
     done.addEventListener('click', async () => { try { await withBusy(done, () => api.gate(svc.id, 'profile', true)); S.forceHome = false; await load(); } catch (err) { toast(err.message, true); } });
     const back = el('button', { class: 'btn ghost', type: 'button', onclick: () => { step = (p.options || []).length ? 'pick' : 'desc'; draw(); } }, '소개 고치기');
     wrap.append(gateCard({
-      n: 3, title: '프로필에 붙여넣어 주세요', mins: '1분',
+      n: 2, title: '프로필에 붙여넣어 주세요', mins: '1분',
       children: [
         dots('paste'),
         el('div', { class: 'pic' }, img, el('div', { style: { display: 'grid', gap: '6px' } }, el('b', {}, '프로필 이미지'), el('span', { class: 'muted', style: { fontSize: '13px' } }, '로고가 있으면 로고를'), dl)),
         el('div', { class: 'field-copy' }, el('span', {}, '소개'), copyRow(svc.bio || p.bio || '')),
         svc.homepage ? el('div', { class: 'field-copy' }, el('span', {}, '링크'), copyRow(svc.homepage, true)) : null,
         el('ul', { class: 'steps' },
-          el('li', {}, el('i', {}, 'I'), el('span', {}, 'Instagram › 프로필 편집 → 사진 · 소개 · 링크')),
-          el('li', {}, el('i', {}, 'T'), el('span', {}, 'Threads › 프로필 편집 → 소개'))),
+          el('li', {}, el('i', {}, 'I'), el('span', {}, 'Instagram 프로필 편집 → 사진 · 소개 · 링크')),
+          el('li', {}, el('i', {}, 'T'), el('span', {}, 'Threads 앱 › 프로필 편집 → 소개'))),
       ],
-      acts: [done, back, later()],
+      acts: [el('a', { class: 'btn', href: 'https://www.instagram.com/accounts/edit/', target: '_blank', rel: 'noopener' }, '프로필 편집 열기'), done, back, later()],
     }));
   };
   draw();
@@ -404,10 +422,9 @@ function viewHome() {
 }
 async function connect(kind, btn) {
   const st = S.st;
-  if (!st.caps[kind]) return toast(`Meta 앱 키가 아직 없습니다(${kind === 'ig' ? 'IG_APP_ID' : 'THREADS_APP_ID'})`, true);
-  if (!st.caps.secret) return toast('SESSION_SECRET 이 아직 없습니다 — Cloudflare 변수에 긴 임의 문자열을 넣어 주세요', true);
+  if (!st.caps[kind] || !st.caps.secret) { S.forceHome = false; st.gates.connect = 0; render(); return toast('연결 준비(관리자 설정)가 아직입니다', true); }
   try { const { url } = await withBusy(btn, () => api.oauthStart(st.service.id, kind)); location.href = url; }
-  catch (err) { toast(err.message === 'no_app' ? 'Meta 앱 키가 아직 없습니다' : err.message === 'no_secret' ? 'SESSION_SECRET 이 없습니다' : err.message, true); }
+  catch (err) { toast(err.message === 'no_app' || err.message === 'no_secret' ? '연결 준비(관리자 설정)가 아직입니다' : err.message, true); }
 }
 function weekTitle() { const a = S.week; const b = a + 6 * DAY; const ka = new Date(a + 9 * 3600e3); const kb = new Date(b + 9 * 3600e3); return `${ka.getUTCMonth() + 1}.${ka.getUTCDate()} – ${kb.getUTCMonth() + 1}.${kb.getUTCDate()}`; }
 
