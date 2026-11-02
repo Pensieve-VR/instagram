@@ -1,0 +1,36 @@
+{
+  // 홍보실 — Cloudflare Workers (정적 화면 + API + 크론). Pages가 아닌 이유: 예약 게시 크론이 Workers에만 있다.
+  // 비밀은 여기 두지 않는다 → Cloudflare 대시보드 › Workers 및 Pages › pensieve-instagram › 설정 › 변수 및 비밀(암호화)
+  //   PASSWORDS           "이름=암호" 를 쉼표로 여러 개 (BM·브레인 스토밍과 같은 형식) — 이름마다 따로 공간
+  //   ANTHROPIC_API_KEY   Claude 키 (BM·브레인 스토밍에 쓴 키 그대로)
+  //   IG_APP_ID · IG_APP_SECRET            Meta 앱 › Instagram › API setup with Instagram login 의 앱 ID·시크릿
+  //   THREADS_APP_ID · THREADS_APP_SECRET  Meta 앱 › Threads API 의 앱 ID·시크릿
+  //   SESSION_SECRET      (선택) 열쇠·토큰 암호화용 긴 임의 문자열. 없으면 PASSWORDS에서 만든다
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pensieve-instagram",
+  "main": "src/index.js",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "single-page-application" },
+  "observability": { "enabled": true },
+  "triggers": {
+    // 5분마다 예약 게시·컨테이너 확인 · 매일 00:00 UTC(09:00 KST) 지표 수집·요약·토큰 갱신
+    "crons": ["*/5 * * * *", "0 0 * * *"]
+  },
+  "vars": {
+    "CLAUDE_MODEL": "claude-sonnet-5-5",
+    "CLAUDE_EFFORT": "medium",
+    "GRAPH_VERSION": "v23.0",
+    "PUBLIC_ORIGIN": "https://instagram.pensieve.kr"
+  },
+  // 저장소 — 표는 첫 요청 때 저절로 만든다(lib/db.js)
+  "d1_databases": [
+    { "binding": "DB", "database_name": "instagram", "database_id": "REPLACE_WITH_D1_ID" }
+  ],
+  // 카드 이미지·올린 소재 — /media/<key> 로 공개 서빙(Meta가 가져간다)
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "pensieve-instagram-media" }
+  ],
+  // 카드 HTML → JPEG 렌더(Browser Rendering). 바인딩이 없으면 텍스트 글·소재 이미지만 쓴다
+  "browser": { "binding": "BROWSER" }
+}

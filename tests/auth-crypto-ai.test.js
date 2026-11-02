@@ -1,0 +1,80 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { entries, login, verifyToken, makeState, readState, configured } from '../lib/auth.js';
+import { seal, open } from '../lib/crypto.js';
+import { extractJson, mock } from '../lib/ai.js';
+import { handleFree, MetaError, authUrl, stripCode } from '../lib/meta.js';
+
+const env = { PASSWORDS: '영웅=secret1, 다호=secret2,\nplainpw' };
+
+test('PASSWORDS 해석', () => {
+  assert.deepEqual(entries(env), [{ name: '영웅', pw: 'secret1' }, { name: '다호', pw: 'secret2' }, { name: '', pw: 'plainpw' }]);
+  assert.equal(configured({}), false);
+  assert.deepEqual(entries({ PASSWORDS: ' , ,' }), []);
+});
+
+test('로그인 → 열쇠 → 검증, 같은 이름은 같은 공간', async () => {
+  const a = await login(env, 'secret1'); const b = await login({ PASSWORDS: '영웅=changed' }, 'changed');
+  assert.ok(a && a.token); assert.equal(a.name, '영웅'); assert.equal(a.space, b.space);
+  const who = await verifyToken(env, a.token);
+  assert.deepEqual(who, { space: a.space, name: '영웅' });
+  assert.equal(await login(env, 'nope'), null);
+  assert.equal(await login(env, ''), null);
+  assert.equal(await verifyToken(env, a.token + 'x'), null);
+  assert.equal(await verifyToken(env, 'a.b.c'), null);
+  assert.equal(await verifyToken({ PASSWORDS: 'other' }, a.token), null); // 다른 비밀로는 검증 실패
+  const p = await login(env, 'plainpw'); assert.equal(p.name, '홍보실'); assert.match(p.space, /^p-/);
+});
+
+test('OAuth state 왕복', async () => {
+  const st = await makeState(env, 'u-0123456789abcdef', 's0abc123', 'ig');
+  assert.deepEqual(await readState(env, st), { space: 'u-0123456789abcdef', serviceId: 's0abc123', kind: 'ig' });
+  assert.equal(await readState(env, st.replace(/ig/, 'th')), null); // 변조
+  assert.equal(await readState(env, 'junk'), null);
+  assert.equal(await readState({ PASSWORDS: 'x' }, st), null);
+});
+
+test('토큰 봉인 왕복 · 다른 열쇠로는 못 연다', async () => {
+  const sealed = await seal(env, 'IGQVJ…token한글');
+  assert.notEqual(sealed, 'IGQVJ…token한글');
+  assert.equal(await open(env, sealed), 'IGQVJ…token한글');
+  await assert.rejects(open({ PASSWORDS: 'other' }, sealed));
+  await assert.rejects(open(env, 'AAAA'), /sealed_too_short/);
+  assert.equal(await open(env, ''), '');
+});
+
+test('extractJson — 울타리·앞뒤 말·중첩·문자열 속 괄호', () => {
+  assert.deepEqual(extractJson('여기요\n```json\n{"a":1,"b":[1,2,{"c":"}"}]}\n```'), { a: 1, b: [1, 2, { c: '}' }] });
+  assert.deepEqual(extractJson('[1,2,3] 끝'), [1, 2, 3]);
+  assert.deepEqual(extractJson('{"s":"escaped \\" quote { [","n":null}'), { s: 'escaped " quote { [', n: null });
+  assert.throws(() => extractJson('json 없음'), /ai_no_json/);
+  assert.throws(() => extractJson('{"a":1'), /ai_unclosed_json/);
+  assert.throws(() => extractJson('{"a":]'), /ai_bad_json/);
+  assert.throws(() => extractJson('{a:1}'), /ai_bad_json/);
+});
+
+test('mock 답은 모양이 맞다', () => {
+  const c = mock('candidates', '서비스 이름: 될까?\n');
+  assert.equal(c.candidates.length, 5); assert.ok(c.candidates.every((x) => x.handle && x.why));
+  assert.ok(mock('post', 'x').card.headline);
+  assert.equal(mock('whatever', 'x').ok, true);
+});
+
+test('handleFree — 상태코드 해석, 네트워크 실패는 unknown', async () => {
+  const f = (status) => async () => ({ status });
+  assert.equal(await handleFree('ig', 'abc', f(404)), 'free');
+  assert.equal(await handleFree('ig', 'abc', f(200)), 'taken');
+  assert.equal(await handleFree('ig', 'abc', f(302)), 'unknown');
+  assert.equal(await handleFree('th', 'abc', async () => { throw new Error('net'); }), 'unknown');
+});
+
+test('authUrl · MetaError · stripCode', () => {
+  const u = new URL(authUrl({ IG_APP_ID: '123', IG_APP_SECRET: 'x' }, 'ig', 'https://h/cb', 'st'));
+  assert.equal(u.host, 'www.instagram.com'); assert.equal(u.searchParams.get('client_id'), '123'); assert.equal(u.searchParams.get('state'), 'st');
+  assert.match(u.searchParams.get('scope'), /instagram_business_content_publish/);
+  const t = new URL(authUrl({ THREADS_APP_ID: '9', THREADS_APP_SECRET: 'x', THREADS_SCOPES: 'threads_basic' }, 'th', 'https://h/cb', 'st'));
+  assert.equal(t.searchParams.get('scope'), 'threads_basic');
+  const e = new MetaError('Error validating access token', { code: 190, type: 'OAuthException' });
+  assert.equal(e.tokenProblem, true); assert.equal(new MetaError('x', { code: 4 }).rateLimited, true); assert.equal(new MetaError('x', { code: 100 }).tokenProblem, false);
+  assert.equal(stripCode('abc#_'), 'abc'); assert.equal(stripCode('abc'), 'abc');
+});

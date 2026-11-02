@@ -287,7 +287,7 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
  <div class="wrap">
   <div class="brand">
    <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M4 14h20" stroke="var(--line-ig)" stroke-width="3" stroke-linecap="round"/><path d="M4 20h20" stroke="var(--line-th)" stroke-width="3" stroke-linecap="round"/><circle cx="10" cy="14" r="3.2" fill="var(--paper-sheet)" stroke="var(--line-ig)" stroke-width="2.5"/><circle cx="18" cy="20" r="3.2" fill="var(--line-th)"/><circle cx="20" cy="8" r="3" fill="var(--ink-hi)"/></svg>
-   <span>홍보실 <small>기획안 · 1차</small></span>
+   <span>홍보실 <small>기획안 · 2차(구현 반영)</small></span>
   </div>
   <div class="head-actions">
    <button class="btn ghost" type="button" id="fbReset">피드백 비우기</button>
@@ -299,13 +299,13 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
 <main class="wrap">
 
 <nav class="toc" aria-label="차례">
- <a href="#c0"><b>0</b> 결론</a><a href="#c1"><b>1</b> 흐름</a><a href="#c2"><b>2</b> 운영 규칙</a><a href="#c3"><b>3</b> 구조</a><a href="#c4"><b>4</b> 단계</a><a href="#c5"><b>5</b> 화면</a><a href="#c6"><b>6</b> 디자인 시스템</a><a href="#c7"><b>7</b> 결정해 주세요</a>
+ <a href="#c0"><b>0</b> 결론</a><a href="#c1"><b>1</b> 흐름</a><a href="#c2"><b>2</b> 운영 규칙</a><a href="#c3"><b>3</b> 구조</a><a href="#c4"><b>4</b> 단계</a><a href="#c5"><b>5</b> 화면</a><a href="#c6"><b>6</b> 디자인 시스템</a><a href="#c7"><b>7</b> 결정됨</a><a href="#c8"><b>8</b> 구현 현황 · 남은 설정</a>
 </nav>
 
 <section class="hero">
  <h1>서비스 이름 하나 넣으면, Instagram과 Threads가 돌아간다.</h1>
  <p class="lead" style="margin-top:12px">「홍보실」(임시 이름) — 펜시브 서비스의 Instagram·Threads 계정을 개설부터 게시·광고·감시까지 맡아 돌리는 운영 도구. 사람 손은 <b>세 번</b>(가입·연결·프로필)만 간다.</p>
- <div class="meta"><span>주소 <b>instagram.pensieve.kr</b></span><span>저장소 <b>Pensieve-VR/instagram</b></span><span>배포 <b>Cloudflare Workers</b></span><span>작성 <b class="num">2026-11-02</b></span></div>
+ <div class="meta"><span>주소 <b>instagram.pensieve.kr</b></span><span>저장소 <b>Pensieve-VR/instagram</b></span><span>배포 <b>Cloudflare Workers</b></span><span>1차 <b class="num">2026-11-02</b> · 2차 <b class="num">2026-11-02</b></span></div>
 </section>
 
 <!-- 0 결론 -->
@@ -317,8 +317,8 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
    <ul>
     <li>서비스 이름 → 계정명 후보 5개 (빈 이름인지 확인)</li>
     <li>소개문·프로필 이미지 초안 · 링크 정리</li>
-    <li>소재(제품 이미지·설명서·홈페이지)에서 게시물·캐러셀·릴스 생성</li>
-    <li>예약 → 게시 (Instagram 주 3~4 · Threads 하루 2~3)</li>
+    <li>소재(제품 이미지·설명서·홈페이지)에서 게시물 생성 — 초안 → 한 번 더 다듬기(두 번 쓰기)</li>
+    <li>예약 → 게시 — 적게, 잘: Instagram 주 2 · Threads 평일 하루 1 (슬롯은 설정에서)</li>
     <li>성과 좋은 글 자동 광고 (Instagram 피드 + Threads 지면)</li>
     <li>지표·댓글·토큰·실패 감시, 매일 아침 요약</li>
    </ul>
@@ -371,9 +371,9 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
 <!-- 2 운영 규칙 -->
 <section class="chapter" id="c2">
  <div class="chapter-head"><span class="idx">2</span><h2>운영 규칙 (기본값)</h2></div>
- <p class="lead">전부 화면에서 바꿀 수 있는 값이다. 처음 2주는 이 기본으로 돌리고 지표가 쌓이면 시스템이 조정안을 올린다.</p>
+ <p class="lead"><b>적게 올리되 매번 또렷하게.</b> 전부 화면(설정)에서 바꿀 수 있는 값이다. 처음 2주는 이 기본으로 돌리고 지표가 쌓이면 시스템이 조정안을 올린다.</p>
  <div class="cols">
-  <div class="sheet"><h4>빈도</h4><dl class="kv"><dt>Instagram</dt><dd>주 3~4회 — 피드·캐러셀 2, 릴스 1~2</dd><dt>Threads</dt><dd>하루 2~3회 + 댓글 답글 — 인스타보다 많이, 자주</dd><dt>시간대</dt><dd>IG 12시·20시 / Threads 9·13·21시(KST) → 2주 뒤 성과로 재배치</dd></dl></div>
+  <div class="sheet"><h4>빈도</h4><dl class="kv"><dt>Instagram</dt><dd>주 2회 — 화·금 20:00 카드 이미지 1장 (릴스는 2차)</dd><dt>Threads</dt><dd>평일 하루 1회 — 12:30 짧은 글. 반응이 좋으면 하루 1회 더 제안</dd><dt>원칙</dt><dd>글 하나에 메시지 하나 · 초안을 한 번 더 다듬어서만 세운다 · 슬롯이 곧 빈도</dd></dl></div>
   <div class="sheet"><h4>콘텐츠 각도 8개 순환</h4><div class="chips"><span class="chip">기능 하나</span><span class="chip">문제 → 해결</span><span class="chip">비교</span><span class="chip">비하인드</span><span class="chip">질문 던지기</span><span class="chip">수치</span><span class="chip">사용 장면</span><span class="chip">공지</span></div><p class="cap" style="margin-top:10px">같은 소재라도 각도를 바꿔 쓴다. Threads는 짧은 글 위주, Instagram은 카드 이미지 위주.</p></div>
   <div class="sheet"><h4>검수</h4><dl class="kv"><dt>처음 2주</dt><dd>승인 후 게시 — 역 하나 눌러 승인·수정·건너뜀</dd><dt>그 뒤</dt><dd>승인률 90% 넘으면 「자동 게시 + 사후 보고」 전환을 제안</dd><dt>언제나</dt><dd>공지·가격처럼 틀리면 안 되는 글은 승인 고정</dd></dl></div>
   <div class="sheet"><h4>광고</h4><dl class="kv"><dt>대상</dt><dd>게시 48시간 뒤 참여율 상위 20% 글을 자동 부스트</dd><dt>예산</dt><dd>일 상한 기본 1만 원, 월 상한 따로</dd><dt>지면</dt><dd>Threads 광고는 Instagram 피드와 묶어서만 집행된다(Meta 규칙). Threads 쪽 비중을 높이는 설정은 가능</dd></dl></div>
@@ -386,7 +386,7 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
 <!-- 3 구조 -->
 <section class="chapter" id="c3">
  <div class="chapter-head"><span class="idx">3</span><h2>구조</h2></div>
- <p class="lead">Cloudflare Worker 하나가 화면·API·크론을 다 맡는다. Pages가 아니라 Workers인 이유는 <b>크론(예약 게시)과 큐</b>가 Workers에만 있어서다.</p>
+ <p class="lead">Cloudflare Worker 하나가 화면·API·크론을 다 맡는다. Pages가 아니라 Workers인 이유는 <b>크론(예약 게시)</b>이 Workers에만 있어서다. 큐는 쓰지 않는다 — 예약 표(D1)를 5분 크론이 읽는 것으로 충분하다.</p>
  <figure class="figure arch">
   <svg viewBox="0 0 820 470" width="820" height="470" role="img" aria-label="시스템 구조도">
    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink-muted)"/></marker></defs>
@@ -400,11 +400,11 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
    <!-- storage -->
    <rect class="box cf" x="40" y="240" width="140" height="56"/><text class="t" x="110" y="263" text-anchor="middle">D1</text><text class="s" x="110" y="281" text-anchor="middle">계정·역·일정·지표</text>
    <rect class="box cf" x="200" y="240" width="140" height="56"/><text class="t" x="270" y="263" text-anchor="middle">R2</text><text class="s" x="270" y="281" text-anchor="middle">카드·영상 · 공개 URL</text>
-   <rect class="box cf" x="360" y="240" width="140" height="56"/><text class="t" x="430" y="263" text-anchor="middle">Queues</text><text class="s" x="430" y="281" text-anchor="middle">생성·게시·광고 작업</text>
+   <rect class="box cf" x="360" y="240" width="140" height="56"/><text class="t" x="430" y="263" text-anchor="middle">Cron</text><text class="s" x="430" y="281" text-anchor="middle">5분 게시 · 매일 09시 요약</text>
    <rect class="box cf" x="40" y="330" width="220" height="56"/><text class="t" x="150" y="353" text-anchor="middle">Browser Rendering</text><text class="s" x="150" y="371" text-anchor="middle">HTML 카드 템플릿 → PNG</text>
    <rect class="box ai" x="280" y="330" width="220" height="56"/><text class="t" x="390" y="353" text-anchor="middle">Claude API</text><text class="s" x="390" y="371" text-anchor="middle">각도 선택 · 카피 · 답글 초안 · 요약</text>
    <!-- optional render worker -->
-   <rect class="box opt" x="560" y="330" width="240" height="56"/><text class="t" x="680" y="353" text-anchor="middle">릴스 렌더 워커 (2차 · 선택)</text><text class="s" x="680" y="371" text-anchor="middle">리눅스 서버 ffmpeg / Containers / 외부 API</text>
+   <rect class="box opt" x="560" y="330" width="240" height="56"/><text class="t" x="680" y="353" text-anchor="middle">릴스 렌더 (2차)</text><text class="s" x="680" y="371" text-anchor="middle">Cloudflare Containers · 외부 렌더 API</text>
    <!-- meta -->
    <rect class="box meta" x="580" y="140" width="200" height="40"/><text class="t" x="680" y="165" text-anchor="middle">Instagram Graph API</text>
    <rect class="box meta" x="580" y="190" width="200" height="40"/><text class="t" x="680" y="215" text-anchor="middle">Threads API</text>
@@ -421,10 +421,10 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
   <figcaption><span class="legend"><i style="border-color:var(--ink-teal)"></i>Cloudflare</span><span class="legend"><i style="border-color:var(--ink-rose)"></i>Meta</span><span class="legend"><i style="border-color:var(--ink-violet)"></i>AI</span><span class="legend"><i style="border-style:dashed;border-color:var(--ink-muted)"></i>2차·선택</span></figcaption>
  </figure>
  <div class="cols two">
-  <div class="sheet"><h4>배포</h4><p>GitHub <code>main</code> 푸시 → Cloudflare Workers Builds 자동 배포 → <b>instagram.pensieve.kr</b>. 연결은 브레인 스토밍 때처럼 Claude가 Cloudflare 대시보드에서 잡는다(Chrome). 비밀값은 사용자가 Cloudflare 변수에 직접 등록.</p></div>
+  <div class="sheet"><h4>배포</h4><p>GitHub <code>main</code> 푸시 → Cloudflare Workers Builds 자동 배포 → <b>instagram.pensieve.kr</b>. 연결은 브레인 스토밍·BM 때처럼 Claude가 Cloudflare 대시보드에서 잡는다(Chrome). 비밀값(<code>PASSWORDS</code>·<code>ANTHROPIC_API_KEY</code>)은 BM·브레인 스토밍과 같은 이름으로 사용자가 Cloudflare 변수에 직접 등록.</p></div>
   <div class="sheet"><h4>Meta 쪽 한 번 설정 (사람)</h4><p>개발자 앱 만들기 → Instagram·Threads 제품 추가 → 앱 역할에 본인 계정. <b>자체 계정만 운영하면 앱 심사 없이 개발 모드로 충분</b>하다. 광고(Marketing API)는 비즈니스 인증·접근 심사가 더 있어 2차로 뺐다.</p></div>
-  <div class="sheet"><h4>릴스 영상</h4><p>Workers에서는 영상 합성(ffmpeg)이 안 돈다. 1차는 이미지·캐러셀·Threads 글까지. 릴스는 2차에서 <b>리눅스 서버 렌더 워커</b>(곧 오는 서버) · Cloudflare Containers · 외부 렌더 API 중 하나 — 7장에서 골라 주세요.</p></div>
-  <div class="sheet"><h4>저장 모델</h4><dl class="kv"><dt>계정 묶음</dt><dd>서비스 하나 = Instagram + Threads 노선 둘</dd><dt>역</dt><dd>게시물 하나 — 소재·각도·카피·미디어·상태·지표</dd><dt>이벤트</dt><dd>게시·실패·승인·광고·알림의 시간순 기록</dd></dl></div>
+  <div class="sheet"><h4>릴스 영상 (2차)</h4><p>Workers에서는 영상 합성(ffmpeg)이 안 돈다. 1차는 이미지 카드·Threads 글. 릴스는 2차에서 <b>Cloudflare Containers</b> 기준으로 가고 외부 렌더 API를 보조로 둔다 — 자체 리눅스 서버는 보안 사고 이력과 미세팅 때문에 제외.</p></div>
+  <div class="sheet"><h4>저장 모델</h4><dl class="kv"><dt>계정 묶음</dt><dd>서비스 하나 = Instagram + Threads 노선 둘 (D1: services · channels · gates)</dd><dt>역</dt><dd>게시물 하나 — 소재·각도·카피·미디어·상태·지표 (posts)</dd><dt>그 외</dt><dd>materials(소재) · events(시간순 기록) · daily(요약)</dd></dl></div>
  </div>
  <details class="fb" data-fb="3 구조"><summary>이 장 피드백</summary><textarea id="fb-c3" placeholder="스택·배포·저장 모델"></textarea></details>
 </section>
@@ -432,11 +432,11 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
 <!-- 4 단계 -->
 <section class="chapter" id="c4">
  <div class="chapter-head"><span class="idx">4</span><h2>단계</h2></div>
- <p class="lead">피드백 받으면 <b>1차를 바로 구현</b>한다. 광고와 릴스는 Meta 심사·렌더 환경이 걸려 있어 2차.</p>
+ <p class="lead">1차는 <b>구현됨</b>(8장). 광고와 릴스는 Meta 심사·렌더 환경이 걸려 있어 2차.</p>
  <div class="phases">
-  <div class="phase now"><div class="dot">1</div><div class="body"><h3>개설 + 글·이미지 운영</h3><p class="muted">피드백 직후 구현 — 이번 세션</p><div class="chips"><span class="chip">시작 화면</span><span class="chip">계정명 추천</span><span class="chip gate">게이트 ①②③</span><span class="chip">Meta 연결·토큰</span><span class="chip">소재 창고</span><span class="chip ig">이미지·캐러셀</span><span class="chip th">Threads 글</span><span class="chip">승인·예약·게시</span><span class="chip">노선도</span><span class="chip">지표·일일 요약</span><span class="chip">입장 암호</span><span class="chip">Cloudflare 배포</span></div></div></div>
+  <div class="phase now"><div class="dot">1</div><div class="body"><h3>개설 + 글·이미지 운영</h3><p class="muted">구현됨 · 2026-11-02 — Meta 앱 키·Cloudflare 변수만 넣으면 돈다</p><div class="chips"><span class="chip">시작 화면</span><span class="chip">계정명 추천</span><span class="chip gate">게이트 ①②③</span><span class="chip">Meta 연결·토큰</span><span class="chip">소재 창고</span><span class="chip ig">이미지 카드</span><span class="chip th">Threads 글</span><span class="chip">승인·예약·게시</span><span class="chip">노선도</span><span class="chip">지표·일일 요약</span><span class="chip">입장 암호</span><span class="chip">Cloudflare 배포</span></div></div></div>
   <div class="phase"><div class="dot">2</div><div class="body"><h3>릴스 + 광고 + 답글</h3><p class="muted">Meta 비즈니스 인증 · 렌더 환경 확보 뒤</p><div class="chips"><span class="chip ig">릴스 생성</span><span class="chip ad">자동 부스트</span><span class="chip ad">예산 상한</span><span class="chip th">댓글·멘션 답글 초안</span><span class="chip th">Threads 키워드 반응</span></div></div></div>
-  <div class="phase"><div class="dot">3</div><div class="body"><h3>자율 운영 루프</h3><p class="muted">지표 4주 이상 쌓인 뒤</p><div class="chips"><span class="chip">성과 → 각도·시간대 재배분</span><span class="chip">자동 게시 전환</span><span class="chip">서비스 여러 개 동시 운영</span><span class="chip">주간 전략 제안</span></div></div></div>
+  <div class="phase"><div class="dot">3</div><div class="body"><h3>자율 운영 루프</h3><p class="muted">지표 4주 이상 쌓인 뒤</p><div class="chips"><span class="chip">캐러셀</span><span class="chip">성과 → 각도·시간대 재배분</span><span class="chip">자동 게시 전환</span><span class="chip">서비스 여러 개 동시 운영</span><span class="chip">주간 전략 제안</span></div></div></div>
  </div>
  <details class="fb" data-fb="4 단계"><summary>이 장 피드백</summary><textarea id="fb-c4" placeholder="순서를 바꿀 것·1차에 꼭 넣을 것"></textarea></details>
 </section>
@@ -556,19 +556,56 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
 
 <!-- 7 결정 -->
 <section class="chapter" id="c7">
- <div class="chapter-head"><span class="idx">7</span><h2>결정해 주세요</h2></div>
- <p class="lead">답이 없으면 <b>기본</b>으로 간다. 피드백은 각 장 칸에 적고, 위의 「피드백 모아 복사」로 복사해 채팅에 붙여 주면 된다.</p>
+ <div class="chapter-head"><span class="idx">7</span><h2>결정됨</h2></div>
+ <p class="lead">1차 피드백(2026-11-02)으로 정해진 것. 밑줄 없는 항목은 기본값 그대로.</p>
  <div class="decisions">
-  <div class="sheet q"><div class="n">1</div><div><h4>이름</h4><p class="muted">주소는 instagram.pensieve.kr 그대로. 화면에 보일 이름.</p><div class="opts"><span class="default">홍보실</span><span>확성기</span><span>피드</span><span>다른 것</span></div></div></div>
-  <div class="sheet q"><div class="n">2</div><div><h4>디자인</h4><p class="muted">펜시브 페이퍼를 그대로 쓸지, 이 도구만 다른 룩으로 갈지.</p><div class="opts"><span class="default">페이퍼 계승</span><span>별도 룩</span></div></div></div>
-  <div class="sheet q"><div class="n">3</div><div><h4>검수</h4><div class="opts"><span class="default">2주 승인 → 자동 전환 제안</span><span>처음부터 자동</span><span>계속 승인</span></div></div></div>
-  <div class="sheet q"><div class="n">4</div><div><h4>릴스 렌더 (2차)</h4><p class="muted">Workers 밖에서 영상을 만들 자리.</p><div class="opts"><span class="default">리눅스 서버 워커</span><span>Cloudflare Containers</span><span>외부 렌더 API</span></div></div></div>
-  <div class="sheet q"><div class="n">5</div><div><h4>광고</h4><p class="muted">2차로 미루는 것과 일 상한 기본값.</p><div class="opts"><span class="default">2차 · 일 1만 원</span><span>1차에 넣기</span><span>상한 다르게</span></div></div></div>
-  <div class="sheet q"><div class="n">6</div><div><h4>알림</h4><p class="muted">실패·만료·일일 요약을 어디로 보낼지.</p><div class="opts"><span class="default">화면 안에서만</span><span>디스코드</span><span>메일</span><span>관제탑</span></div></div></div>
-  <div class="sheet q"><div class="n">7</div><div><h4>첫 대상</h4><p class="muted">첫 계정 묶음과 소재 출처.</p><div class="opts"><span class="default">될까? · delka.pensieve.kr</span><span>펜시브 회사 계정</span><span>다른 서비스</span></div></div></div>
-  <div class="sheet q"><div class="n">8</div><div><h4>Cloudflare 연결</h4><div class="opts"><span class="default">대시보드에서 Claude가(Chrome)</span><span>Cloudflare 커넥터 연결</span><span>API 토큰 전달</span></div></div></div>
+  <div class="sheet q"><div class="n">1</div><div><h4>이름</h4><div class="opts"><span class="default">홍보실</span></div></div></div>
+  <div class="sheet q"><div class="n">2</div><div><h4>디자인</h4><div class="opts"><span class="default">페이퍼 계승</span></div></div></div>
+  <div class="sheet q"><div class="n">3</div><div><h4>검수</h4><div class="opts"><span class="default">2주 승인 → 자동 전환 제안</span></div></div></div>
+  <div class="sheet q"><div class="n">+</div><div><h4>빈도</h4><p class="muted">"너무 많은 게시물보다 적은 게시물로도 효과적으로"</p><div class="opts"><span class="default">Instagram 주 2 · Threads 평일 하루 1 · 초안을 한 번 더 다듬어서만</span></div></div></div>
+  <div class="sheet q"><div class="n">4</div><div><h4>릴스 렌더 (2차)</h4><p class="muted">Workers 밖에서 영상을 만들 자리. 2차에서.</p><div class="opts"><span class="default">Cloudflare Containers</span><span>외부 렌더 API (보조)</span><span style="text-decoration:line-through;opacity:.5">리눅스 서버 — 보안 사고 이력·미세팅으로 제외</span></div></div></div>
+  <div class="sheet q"><div class="n">5</div><div><h4>광고</h4><div class="opts"><span class="default">2차 · 일 1만 원</span></div></div></div>
+  <div class="sheet q"><div class="n">6</div><div><h4>알림</h4><div class="opts"><span class="default">화면 안에서만(신호 점 + 기록)</span></div></div></div>
+  <div class="sheet q"><div class="n">7</div><div><h4>첫 대상</h4><p class="muted">첫 계정 묶음.</p><div class="opts"><span class="default">다른 서비스 계정 하나를 새로 개설 — 이름은 시작 화면에서</span></div></div></div>
+  <div class="sheet q"><div class="n">8</div><div><h4>Cloudflare 연결</h4><div class="opts"><span class="default">대시보드에서 Claude가(Chrome) · 비밀값 이름은 BM·브레인 스토밍과 동일</span></div></div></div>
  </div>
- <details class="fb" data-fb="7 결정"><summary>이 장 피드백 · 번호로 답해도 됨</summary><textarea id="fb-c7" placeholder="예) 1 홍보실 / 3 처음부터 자동 / 6 디스코드"></textarea></details>
+ <details class="fb" data-fb="7 결정"><summary>이 장 피드백</summary><textarea id="fb-c7" placeholder="바꾸고 싶은 결정"></textarea></details>
+</section>
+
+<!-- 8 구현 현황 -->
+<section class="chapter" id="c8">
+ <div class="chapter-head"><span class="idx">8</span><h2>구현 현황 · 남은 설정</h2></div>
+ <p class="lead">코드는 <b>Pensieve-VR/instagram</b> main에 있다. 돌리려면 Meta 앱 키 넷과 Cloudflare 변수만 넣으면 된다 — 사람이 한 번 할 일.</p>
+ <div class="cols">
+  <div class="sheet"><h4>있음 — 1차 전부</h4><ul>
+   <li>암호 입장(PASSWORDS) · 공간별 서비스 묶음</li>
+   <li>시작 → 계정명 후보 5개(빈 이름 확인) → 게이트 ①②③</li>
+   <li>Meta 연결(Instagram 로그인 API · Threads API, 60일 토큰 자동 갱신, 봉인 저장)</li>
+   <li>소재 창고(JPG·글·링크 → 사실만 추림) · 슬롯 설정 · 각도 8개 순환</li>
+   <li>이번 주 채우기 — 초안 → 다듬기 → 카드(JPEG) → 승인 대기/예약</li>
+   <li>5분 크론 게시(두 단계) · 실패 3회 재시도 후 실패 표시 · 매일 09시 지표·요약</li>
+   <li>노선도 홈 · 역 상세(승인·고치기·다시 쓰기·지금 게시·건너뜀) · 신호·기록</li>
+  </ul></div>
+  <div class="sheet"><h4>계획 — 2차</h4><ul>
+   <li>릴스(Cloudflare Containers) · 캐러셀</li>
+   <li>광고 부스트(Marketing API, 비즈니스 인증 뒤)</li>
+   <li>댓글·멘션 답글 초안 · Threads 키워드 반응</li>
+   <li>자율 루프 — 성과로 각도·시간대 재배분</li>
+  </ul></div>
+  <div class="sheet gate"><h4>사람이 한 번 — Meta 앱</h4><ul>
+   <li>developers.facebook.com → 앱 만들기(비즈니스) → 제품 추가: <b>Instagram</b>(API setup with Instagram login) · <b>Threads API</b></li>
+   <li>각 제품의 앱 ID·시크릿 → Cloudflare 변수 <code>IG_APP_ID</code> <code>IG_APP_SECRET</code> <code>THREADS_APP_ID</code> <code>THREADS_APP_SECRET</code></li>
+   <li>되돌아올 주소 등록: <code>https://instagram.pensieve.kr/api/oauth/ig/callback</code> · <code>https://instagram.pensieve.kr/api/oauth/threads/callback</code></li>
+   <li>앱 역할(Instagram tester / Threads tester)에 운영할 Instagram 계정 추가 — 자체 계정은 심사 없이 개발 모드로 충분</li>
+  </ul></div>
+  <div class="sheet gate"><h4>사람이 한 번 — Cloudflare 변수</h4><ul>
+   <li><code>PASSWORDS</code> — 이름=암호 (BM·브레인 스토밍과 같은 형식)</li>
+   <li><code>ANTHROPIC_API_KEY</code> — 같은 키 그대로</li>
+   <li>(선택) <code>SESSION_SECRET</code> — 열쇠·토큰 봉인용 긴 임의 문자열</li>
+   <li>Claude가 대시보드에서: D1 <code>instagram</code> · R2 <code>pensieve-instagram-media</code> · Workers Builds(main) · 도메인 instagram.pensieve.kr</li>
+  </ul></div>
+ </div>
+ <details class="fb" data-fb="8 구현"><summary>이 장 피드백 — 2차 피드백은 실제로 써 본 흐름 기준으로</summary><textarea id="fb-c8" placeholder="막힌 곳 · 어색한 전환 · 빠진 것"></textarea></details>
 </section>
 
 <footer class="sources">

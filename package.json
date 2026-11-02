@@ -1,0 +1,19 @@
+{
+  "name": "pensieve-instagram",
+  "private": true,
+  "type": "module",
+  "description": "홍보실 — 펜시브 서비스의 Instagram·Threads 계정을 개설부터 게시·감시까지 돌리는 운영 도구",
+  "scripts": {
+    "dev": "wrangler dev --var MOCK_AI:1 --var \"PASSWORDS:나=test\"",
+    "test": "node --test tests/*.test.js",
+    "check": "node scripts/check.mjs",
+    "build": "node scripts/stamp.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^1.4.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.156.0"
+  }
+}

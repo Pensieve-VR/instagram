@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>홍보실</title>
+<meta name="description" content="펜시브 서비스의 Instagram·Threads를 개설부터 게시·감시까지 맡아 돌리는 운영 도구">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script>(function(){try{var t=localStorage.getItem('hongbo.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}catch(e){document.documentElement.dataset.theme='light';}})();</script>
+<link rel="stylesheet" href="/app.css?v=dev">
+<script type="importmap">{"imports":{}}</script>
+</head>
+<body>
+<!-- 맨 처음: 암호. BM·브레인 스토밍과 같다 -->
+<section id="lock" class="lock" hidden>
+ <form id="lockForm" class="lock-card" autocomplete="on">
+  <div class="mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 22h32" class="l-ig"/><path d="M8 32h32" class="l-th"/><circle cx="18" cy="22" r="5" class="s-ig"/><circle cx="30" cy="32" r="5" class="s-th"/><circle cx="34" cy="12" r="4.5" class="s-gate"/></svg></div>
+  <h1>홍보실</h1>
+  <label class="sr" for="lockPw">암호</label>
+  <input id="lockPw" type="password" name="password" autocomplete="current-password" placeholder="암호" required>
+  <button class="btn ink" type="submit">열기</button>
+  <p id="lockMsg" class="lock-msg" role="status"></p>
+ </form>
+</section>
+
+<header id="top" class="top" hidden>
+ <a class="brand" href="#" id="brandHome" aria-label="홍보실 처음으로"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 22h32" class="l-ig"/><path d="M8 32h32" class="l-th"/><circle cx="18" cy="22" r="5" class="s-ig"/><circle cx="30" cy="32" r="5" class="s-th"/><circle cx="34" cy="12" r="4.5" class="s-gate"/></svg></a>
+ <div id="svcPick" class="svc-pick"></div>
+ <div id="signals" class="signals" aria-live="polite"></div>
+ <div class="top-actions">
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="테마 바꾸기"><svg viewBox="0 0 24 24" class="ic"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+  <button class="icon-btn" id="logoutBtn" type="button" aria-label="나가기"><svg viewBox="0 0 24 24" class="ic"><path d="M10 17l5-5-5-5M15 12H3M13 3h6v18h-6"/></svg></button>
+ </div>
+</header>
+
+<main id="app" class="app" hidden></main>
+<div id="layer" class="layer" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/js/main.js?v=dev"></script>
+</body>
+</html>

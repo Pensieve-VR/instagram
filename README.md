@@ -1,9 +1,71 @@
-# 홍보실 (임시 이름) — instagram.pensieve.kr
+# 홍보실 — instagram.pensieve.kr
 
-펜시브 서비스의 Instagram·Threads 계정을 개설부터 게시·광고·감시까지 맡아 돌리는 운영 도구.
+펜시브 서비스의 Instagram·Threads 계정을 개설부터 게시·감시까지 맡아 돌리는 운영 도구. 공식 Meta API만 쓴다.
 
-- 기획안(1차, 피드백용): [docs/기획안.html](docs/기획안.html) — 결론 · 흐름 · 운영 규칙 · 구조 · 단계 · 화면 · 디자인 시스템 · 결정 사항
-- 배포: Cloudflare Workers(정적 화면 + API + Cron + Queues) → instagram.pensieve.kr
-- 원칙: 공식 Meta API만 사용. 가입·연결·프로필 세 게이트만 사람이, 나머지는 시스템이.
+- 기획안: [docs/기획안.html](docs/기획안.html) — 결론 · 흐름 · 운영 규칙 · 구조 · 단계 · 화면 · 디자인 시스템 · 결정됨 · 구현 현황
+- 맨 처음 **암호** → 내 공간이 열린다(BM·브레인 스토밍과 같은 방식). 서비스 이름 하나 → 계정 이름 후보 → 게이트 ①가입 ②연결 ③프로필(사람) → 노선도
+- 노선도: 위 Instagram, 아래 Threads. 역 = 게시물. 점선 초안 · 형광 승인 대기 · 빈 원 예약 · 채운 원 게시됨 · 붉은 원 실패
+- 「이번 주 채우기」: 슬롯(기본 Instagram 화·금 20:00, Threads 평일 12:30)마다 각도를 돌려 초안 → 다듬기 → 카드(JPEG) → 승인 대기(또는 자동 예약)
+- 5분 크론이 예약된 역을 올린다(컨테이너 → 상태 확인 → 게시, 실패 3회 뒤 실패 표시). 매일 09:00 KST 지표·요약·토큰 갱신
 
-기획 문서는 손으로 쓰는 HTML 하나가 원본이다. 고칠 일이 생기면 그 파일을 직접 고친다(날짜별 사본을 만들지 않는다).
+## 구조
+
+```
+public/            정적 화면 (Workers 정적 자산)
+  index.html · app.css · favicon.svg · _headers
+  js/main.js       화면 흐름(잠금 · 시작 · 후보 · 게이트 · 노선도 · 역 상세 · 소재 · 설정)
+  js/linemap.js    주간 노선도 SVG
+  js/api.js        서버 호출 · 열쇠 보관
+  js/ui.js         요소·토스트·겹창·KST 시간 도우미
+src/index.js       Worker — 길(route) · 크론 · 공개 미디어(/media)
+lib/
+  auth.js          암호 → 열쇠(HMAC) · OAuth state 서명
+  crypto.js        Meta 토큰 봉인(AES-GCM)
+  db.js            D1 표(첫 요청 때 만든다)
+  plan.js          순수 로직 — KST·슬롯·각도 순환·상태 전이·검증
+  ai.js            Claude 호출(JSON) · 연습 모드(MOCK_AI)
+  prompts.js       AI 지시문
+  meta.js          Instagram(Instagram 로그인) · Threads API
+  render.js        카드 HTML → JPEG(Browser Rendering)
+  ops.js           생성·계획·게시·지표·요약
+tests/             node --test (순수 로직) · smoke.mjs (로컬 wrangler dev 상대 흐름 시험)
+scripts/           stamp.mjs(판 번호) · check.mjs(문법) · autopush.mjs(자동 커밋·푸시)
+wrangler.jsonc     바인딩(D1 · R2 · Browser) · 크론 · 공개 변수 (비밀 아님)
+```
+
+## 운영자 설정 (사람이 한 번)
+
+Cloudflare 대시보드 › Workers 및 Pages › **pensieve-instagram** › 설정 › 변수 및 비밀 → **비밀(암호화)**:
+
+- `PASSWORDS` — `이름=암호` 를 쉼표로 여러 개 (BM·브레인 스토밍과 같은 형식). 이름마다 공간이 따로
+- `ANTHROPIC_API_KEY` — Claude 키
+- `IG_APP_ID` · `IG_APP_SECRET` — Meta 앱 › Instagram › *API setup with Instagram login*
+- `THREADS_APP_ID` · `THREADS_APP_SECRET` — Meta 앱 › Threads API
+- (선택) `SESSION_SECRET` — 열쇠·토큰 봉인용 긴 임의 문자열
+
+Meta 앱(developers.facebook.com)에서:
+- 되돌아올 주소: `https://instagram.pensieve.kr/api/oauth/ig/callback`, `https://instagram.pensieve.kr/api/oauth/threads/callback`
+- 앱 역할에 운영할 Instagram 계정 추가 — 자체 계정은 앱 심사 없이 개발 모드로 충분
+- Instagram 계정은 **프로페셔널**(비즈니스/크리에이터) 이어야 연결된다
+
+Cloudflare 자원: D1 `instagram`(wrangler.jsonc 의 `database_id`) · R2 `pensieve-instagram-media` · Browser Rendering(카드 이미지; 없으면 소재 이미지만 쓴다) · 크론 `*/5 * * * *`, `0 0 * * *`
+
+## 로컬 실행 · 검사
+
+```bash
+npm install
+npm run dev          # wrangler dev — MOCK_AI=1, 암호 test
+npm test             # 순수 로직 단위 시험
+node tests/smoke.mjs # dev 서버 상대 흐름 시험(로그인 → 서비스 → 소재 → 채우기 → 역 조작 → 크론 → 지우기)
+npm run check        # 문법 검사
+```
+
+## 배포
+
+`main` 푸시 → Cloudflare Workers Builds (빌드 `node scripts/stamp.mjs`, 배포 `npx wrangler deploy`) → instagram.pensieve.kr
+
+## 지키는 것
+
+- 비공식 자동화 없음 — 가입·프로필 수정은 사람이(게이트). API 한도 안에서만(Instagram 100/일, Threads 250/일)
+- 실패는 조용히 넘기지 않는다 — 역에 오류가 적히고 기록에 남고 신호가 뜬다
+- 비밀값은 커밋하지 않는다 — Cloudflare 변수에만
