@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { entries, login, verifyToken, makeState, readState, configured } from '../lib/auth.js';
 import { seal, open } from '../lib/crypto.js';
 import { extractJson, mock } from '../lib/ai.js';
-import { handleFree, MetaError, authUrl, stripCode } from '../lib/meta.js';
+import { MetaError, authUrl, stripCode } from '../lib/meta.js';
+import * as meta from '../lib/meta.js';
 
 const env = { PASSWORDS: '영웅=secret1, 다호=secret2,\nplainpw' };
 
@@ -59,17 +60,14 @@ test('extractJson — 울타리·앞뒤 말·중첩·문자열 속 괄호', () =
 
 test('mock 답은 모양이 맞다', () => {
   const c = mock('candidates', '서비스 이름: 될까?\n');
-  assert.equal(c.candidates.length, 5); assert.ok(c.candidates.every((x) => x.handle && x.why));
+  assert.equal(c.candidates.length, 6); assert.ok(c.candidates.every((x) => x.handle && x.why));
+  assert.equal(mock('profile', '서비스 이름: 르네\n').options.length, 3);
   assert.ok(mock('post', 'x').card.headline);
   assert.equal(mock('whatever', 'x').ok, true);
 });
 
-test('handleFree — 상태코드 해석, 네트워크 실패는 unknown', async () => {
-  const f = (status) => async () => ({ status });
-  assert.equal(await handleFree('ig', 'abc', f(404)), 'free');
-  assert.equal(await handleFree('ig', 'abc', f(200)), 'taken');
-  assert.equal(await handleFree('ig', 'abc', f(302)), 'unknown');
-  assert.equal(await handleFree('th', 'abc', async () => { throw new Error('net'); }), 'unknown');
+test('서버는 Instagram 프로필을 직접 긁지 않는다(약관) — handleFree 없음', () => {
+  assert.equal('handleFree' in meta, false);
 });
 
 test('authUrl · MetaError · stripCode', () => {

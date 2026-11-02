@@ -101,8 +101,8 @@ async function api(request, env, ctx, url) {
       let homepage = String(body.homepage || '').trim().slice(0, 300);
       if (homepage && !/^https?:\/\//i.test(homepage)) homepage = 'https://' + homepage;
       const service = await ops.createService(env, space, { name, homepage, brief: String(body.brief || '').slice(0, 2000) });
-      let candidates = { candidates: [], oneliner: '' };
-      if (aiReady(env)) { try { candidates = await ops.genCandidates(env, service); } catch (e) { await event(env, service.id, 'candidates.failed', e.message, 'warn'); } }
+      let candidates = { candidates: [] };
+      if (aiReady(env)) { try { candidates = await ops.genCandidates(env, service, { hint: String(body.hint || '') }); } catch (e) { await event(env, service.id, 'candidates.failed', e.message, 'warn'); } }
       // 홈페이지가 있으면 첫 소재로 읽어 둔다(실패해도 서비스는 만들어졌다)
       if (homepage) ctx.waitUntil((async () => { try { const pg = await ops.fetchPageText(homepage); await ops.addMaterial(env, service, { type: 'link', title: pg.title, url: homepage, content: pg.text }); } catch (e) { await event(env, service.id, 'material.link_failed', e.message, 'warn'); } })());
       return ok({ service: { ...service, ...candidates } }, 201);
@@ -119,7 +119,15 @@ async function api(request, env, ctx, url) {
       if (mediaReady(env)) ctx.waitUntil((async () => { await deletePrefix(env, `m/${sid}/`); await deletePrefix(env, `c/${sid}/`); })().catch((e) => console.error('media cleanup', e && e.message)));
       return ok({ deleted: sid });
     }
-    if (sub === 'candidates' && m === 'POST') { if (!aiReady(env)) return err(503, 'no_key'); return ok(await ops.genCandidates(env, service)); }
+    if (sub === 'candidates' && m === 'POST' && !seg[3]) { // 다시 추천 — 바라는 점(hint)으로
+      if (!aiReady(env)) return err(503, 'no_key');
+      const { body } = await readJson(request, 4000);
+      return ok(await ops.genCandidates(env, service, { hint: String((body && body.hint) || '') }));
+    }
+    if (sub === 'candidates' && seg[3] === 'mark' && m === 'POST') { // Instagram 에서 본 결과 — free | taken | unchecked
+      const { body, error } = await readJson(request, 2000); if (error) return err(400, error);
+      return ok(await ops.markCandidate(env, service, body.handle, String(body.check || '')));
+    }
     if (sub === 'handle' && m === 'POST') {
       const { body, error } = await readJson(request, 2000); if (error) return err(400, error);
       const handle = await ops.pickHandle(env, service, body.handle);
@@ -130,7 +138,15 @@ async function api(request, env, ctx, url) {
       await ops.setGate(env, service, seg[3], !!body.done);
       return ok({ gates: await ops.gatesOf(env, sid) });
     }
-    if (sub === 'profile' && m === 'POST') { if (!aiReady(env)) return err(503, 'no_key'); return ok({ profile: await ops.genProfile(env, service) }); }
+    if (sub === 'profile' && m === 'POST') { // 사용자가 적은 설명으로 소개문 3안
+      if (!aiReady(env)) return err(503, 'no_key');
+      const { body } = await readJson(request, 8000);
+      return ok({ profile: await ops.genProfile(env, service, { brief: body && body.brief, homepage: body && body.homepage }) });
+    }
+    if (sub === 'bio' && m === 'POST') { // 고른·고친 소개문 확정
+      const { body, error } = await readJson(request, 4000); if (error) return err(400, error);
+      return ok({ profile: await ops.setBio(env, service, body.bio) });
+    }
     if (sub === 'profile-image.svg' && m === 'GET') {
       const p = mergeSettings(service.settings).profile || { monogram: service.name.slice(0, 1), palette: 'rose' };
       return new Response(monogramSvg(p), { headers: { 'content-type': 'image/svg+xml; charset=utf-8', 'cache-control': 'no-store' } });

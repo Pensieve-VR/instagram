@@ -114,13 +114,13 @@ function viewStart(cancelable = false) {
   const form = el('form', { class: 'start enter', autocomplete: 'off' });
   const name = el('input', { class: 'big', id: 'svcName', placeholder: '서비스 이름', required: true, maxlength: 60, autofocus: true });
   const home = el('input', { id: 'svcHome', placeholder: '홈페이지 주소 (있으면)', inputmode: 'url' });
-  const brief = el('input', { id: 'svcBrief', placeholder: '한 줄 — 누구에게 무엇을 (있으면)' });
+  const brief = el('input', { id: 'svcBrief', placeholder: '한 줄 — 누구에게 무엇을 (있으면 후보가 좋아집니다)' });
   const btn = el('button', { class: 'btn ink', type: 'submit' }, '계정 이름 후보 받기');
   form.append(
     el('h1', {}, '어떤 서비스의 계정을 만들까요?'),
     el('div', { style: { display: 'grid', gap: '12px', width: '100%' } }, name, el('div', { class: 'more' }, home, brief)),
     el('div', { class: 'row', style: { display: 'flex', gap: '10px', justifyContent: 'center' } }, cancelable ? el('button', { class: 'btn ghost', type: 'button', onclick: render }, '돌아가기') : null, btn),
-    el('p', { class: 'hint' }, S.st && S.st.caps && !S.st.caps.ai ? 'AI 키가 아직 없어 후보 없이 만듭니다(ANTHROPIC_API_KEY)' : '이름을 넣으면 Instagram·Threads 계정 이름 후보를 만들고, 빈 이름인지 확인합니다'),
+    el('p', { class: 'hint' }, S.st && S.st.caps && !S.st.caps.ai ? 'AI 키가 아직 없어 후보 없이 만듭니다(ANTHROPIC_API_KEY)' : '이름을 넣으면 계정 이름 후보를 만듭니다'),
   );
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -134,36 +134,99 @@ function viewStart(cancelable = false) {
 }
 
 // ---------- 이름 고르기 ----------
+// 비었는지는 Instagram 이 판정한다 — ↗ 로 열어 보고 ✓ / ✗ 를 누르면, 있는 이름은 빠지고 새 후보가 채워진다.
+const IG_PROFILE = (h) => `https://www.instagram.com/${encodeURIComponent(h)}/`;
+const HANDLE_OK = (v) => /^(?!\.)(?!.*\.\.)[a-z0-9._]{1,30}$/.test(v) && !v.endsWith('.');
 function viewPick(svc) {
   const wrap = el('div', { class: 'center' });
   const box = el('div', { class: 'pick enter' });
   const list = el('div', { class: 'cands' });
   const confirm = el('button', { class: 'btn ink', type: 'button', disabled: true }, '이 이름으로');
-  const own = el('input', { placeholder: '직접 쓰기 (영문·숫자·._)', maxlength: 30, spellcheck: 'false' });
-  const refresh = el('button', { class: 'btn ghost', type: 'button' }, '다른 후보');
-  const draw = (cands) => {
-    list.innerHTML = '';
-    if (!cands.length) list.append(el('p', { class: 'muted', style: { textAlign: 'center' } }, S.st.caps.ai ? '후보를 만들지 못했습니다 — 다시 눌러 주세요' : 'AI 키가 없어 후보가 없습니다 — 직접 써 주세요'));
-    for (const c of cands) {
-      const b = el('button', { class: 'cand' + (c.free === 'taken' ? ' taken' : ''), type: 'button', 'aria-pressed': String(S.pick === c.handle) },
-        el('i', { class: 'av av-' + (c.free || 'unknown'), title: { free: '비어 있음', taken: '이미 쓰는 이름', unknown: '확인 못 함 — 가입 화면에서 확인' }[c.free] || '' }),
-        el('div', { class: 'h' }, '@' + c.handle, el('small', {}, c.why)),
-        el('span', { class: 'mine' }, c.free === 'free' ? '비어 있음' : c.free === 'taken' ? '쓰는 중' : '확인 필요'));
-      b.addEventListener('click', () => { S.pick = c.handle; own.value = ''; list.querySelectorAll('.cand').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); confirm.disabled = false; });
-      list.append(b);
-    }
+  const note = el('p', { class: 'pick-note', hidden: true }, '확인 전인 이름 — Instagram 가입 화면에서 한 번 더 확인됩니다');
+  const hint = el('input', { class: 'inp', id: 'pickHint', placeholder: '바라는 점 — 짧게 · kr 붙여서 · 분야 단어 넣어서 …', maxlength: 200 });
+  const again = el('button', { class: 'btn', type: 'button' }, '다시 추천');
+  const own = el('input', { class: 'inp', id: 'pickOwn', placeholder: '직접 쓰기', maxlength: 30, spellcheck: 'false', autocapitalize: 'off' });
+  const ownCheck = el('a', { class: 'btn sm', target: '_blank', rel: 'noopener', hidden: true }, '↗');
+  const takenBar = el('button', { class: 'taken-bar', type: 'button', hidden: true });
+  let cands = (svc.candidates || []).slice();
+  let showTaken = false;
+  let refilling = false;
+
+  const select = (h) => {
+    S.pick = h;
+    list.querySelectorAll('.cand').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.h === h)));
+    const c = cands.find((x) => x.handle === h);
+    confirm.disabled = !h || (c && c.check === 'taken');
+    note.hidden = !h || (c && c.check === 'free');
   };
-  draw(svc.candidates || []);
-  own.addEventListener('input', () => { const v = own.value.trim().toLowerCase(); const okName = /^(?!\.)(?!.*\.\.)[a-z0-9._]{1,30}$/.test(v) && !v.endsWith('.'); S.pick = okName ? v : ''; list.querySelectorAll('.cand').forEach((x) => x.setAttribute('aria-pressed', 'false')); confirm.disabled = !okName; });
-  refresh.addEventListener('click', async () => { try { const r = await withBusy(refresh, () => api.candidates(svc.id)); draw(r.candidates); } catch (err) { toast(err.message === 'no_key' ? 'AI 키가 없습니다' : '후보를 못 만들었습니다', true); } });
-  confirm.addEventListener('click', async () => { try { await withBusy(confirm, () => api.handle(svc.id, S.pick)); await load(); } catch (err) { toast(err.message === 'bad_handle' ? '쓸 수 없는 이름입니다' : err.message, true); } });
+  const mark = async (c, check, node) => {
+    try {
+      if (check === 'taken' && node) { node.classList.add('leaving'); await new Promise((r) => setTimeout(r, 280)); }
+      const r = await api.markCandidate(svc.id, c.handle, check);
+      cands = r.candidates;
+      if (check === 'taken' && S.pick === c.handle) S.pick = '';
+      draw();
+      if (check === 'taken' && visible().length < 3) refill();
+    } catch (err) { node && node.classList.remove('leaving'); toast(err.message, true); }
+  };
+  const visible = () => cands.filter((c) => c.check !== 'taken');
+  const row = (c) => {
+    const card = el('div', { class: `cand ck-${c.check || 'unchecked'}`, 'data-h': c.handle, role: 'button', tabindex: '0', 'aria-pressed': String(S.pick === c.handle) });
+    const open = el('a', { class: 'ck-open', href: IG_PROFILE(c.handle), target: '_blank', rel: 'noopener', title: 'Instagram 에서 열어 보기', 'aria-label': `@${c.handle} Instagram 에서 열기` }, '↗');
+    const yes = el('button', { class: 'ck-btn yes', type: 'button', title: '비었음', 'aria-label': '비었음', 'aria-pressed': String(c.check === 'free') }, '✓');
+    const no = el('button', { class: 'ck-btn no', type: 'button', title: '이미 있음', 'aria-label': '이미 있음', 'aria-pressed': String(c.check === 'taken') }, '✕');
+    open.addEventListener('click', (e) => { e.stopPropagation(); card.classList.add('opened'); });
+    yes.addEventListener('click', (e) => { e.stopPropagation(); mark(c, c.check === 'free' ? 'unchecked' : 'free', card); });
+    no.addEventListener('click', (e) => { e.stopPropagation(); mark(c, c.check === 'taken' ? 'unchecked' : 'taken', card); });
+    card.addEventListener('click', () => { if (c.check !== 'taken') select(c.handle); });
+    card.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && c.check !== 'taken') { e.preventDefault(); select(c.handle); } });
+    card.append(el('i', { class: 'av' }), el('div', { class: 'h' }, '@' + c.handle, c.why ? el('small', {}, c.why) : null), el('div', { class: 'ck' }, open, yes, no));
+    return card;
+  };
+  function draw() {
+    list.innerHTML = '';
+    const vis = visible();
+    if (!vis.length) list.append(el('p', { class: 'muted', style: { textAlign: 'center', margin: '8px 0' } }, S.st.caps.ai ? '후보가 없습니다 — 다시 추천을 눌러 주세요' : 'AI 키가 없어 후보가 없습니다 — 직접 써 주세요'));
+    // 비었음 → 확인 전 순서
+    vis.sort((a, b) => (a.check === 'free' ? 0 : 1) - (b.check === 'free' ? 0 : 1)).forEach((c, i) => { const r = row(c); r.style.animationDelay = `${i * 40}ms`; list.append(r); });
+    const taken = cands.filter((c) => c.check === 'taken');
+    takenBar.hidden = !taken.length;
+    takenBar.textContent = `있는 이름 ${taken.length}`;
+    if (showTaken) taken.forEach((c) => list.append(row(c)));
+    select(S.pick && cands.some((c) => c.handle === S.pick && c.check !== 'taken') ? S.pick : (S.pick && own.value ? S.pick : ''));
+  }
+  async function refill() {
+    if (refilling || !S.st.caps.ai) return;
+    refilling = true;
+    try { const r = await withBusy(again, () => api.candidates(svc.id, hint.value.trim())); cands = r.candidates; draw(); }
+    catch (err) { toast(err.message === 'no_key' ? 'AI 키가 없습니다' : '후보를 못 만들었습니다', true); }
+    finally { refilling = false; }
+  }
+  again.addEventListener('click', () => { S.pick = ''; refill(); });
+  hint.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); S.pick = ''; refill(); } });
+  takenBar.addEventListener('click', () => { showTaken = !showTaken; draw(); });
+  own.addEventListener('input', () => {
+    const v = own.value.trim().toLowerCase().replace(/^@/, '');
+    const okName = HANDLE_OK(v);
+    ownCheck.hidden = !okName; if (okName) ownCheck.href = IG_PROFILE(v);
+    own.classList.toggle('bad', !!v && !okName);
+    const known = cands.find((c) => c.handle === v);
+    if (known && known.check === 'taken') { select(''); own.classList.add('bad'); return; }
+    select(okName ? v : '');
+  });
+  confirm.addEventListener('click', async () => {
+    try { await withBusy(confirm, () => api.handle(svc.id, S.pick)); await load(); }
+    catch (err) { toast(err.message === 'bad_handle' ? '쓸 수 없는 이름입니다' : err.message === 'handle_taken' ? '이미 있다고 표시한 이름입니다' : err.message, true); }
+  });
+  draw();
   box.append(
     el('h2', {}, `${svc.name} — 계정 이름`),
-    svc.oneliner ? el('p', { class: 'muted', style: { textAlign: 'center', margin: 0 } }, svc.oneliner) : null,
+    el('div', { class: 'hintbar' }, hint, again),
     list,
-    el('div', { class: 'legend-free' }, el('span', {}, el('i', { class: 'a' }), '비어 있음'), el('span', {}, el('i', { class: 'b' }), '쓰는 중'), el('span', {}, el('i', { class: 'c' }), '확인 못 함')),
-    el('div', { class: 'own' }, own),
-    el('div', { class: 'row' }, refresh, confirm),
+    el('div', { class: 'pick-legend' }, el('span', {}, el('b', {}, '↗'), ' Instagram 에서 열어 보고'), el('span', { class: 'yes' }, '✓ 비었음'), el('span', { class: 'no' }, '✕ 있음'), takenBar),
+    el('div', { class: 'own' }, own, ownCheck),
+    note,
+    el('div', { class: 'row' }, confirm),
   );
   wrap.append(box);
   return wrap;
@@ -182,18 +245,21 @@ const later = () => el('button', { class: 'btn ghost later', type: 'button', onc
 function viewGateSignup(svc) {
   const done = el('button', { class: 'btn ink', type: 'button' }, '만들었어요');
   done.addEventListener('click', async () => { try { await withBusy(done, () => api.gate(svc.id, 'signup', true)); await load(); } catch (err) { toast(err.message, true); } });
+  const taken = el('button', { class: 'btn', type: 'button' }, '이미 있대요');
+  taken.addEventListener('click', async () => { try { await withBusy(taken, () => api.markCandidate(svc.id, svc.handle, 'taken')); toast(`@${svc.handle} 은 빼고 다시 고릅니다`); await load(); } catch (err) { toast(err.message, true); } });
+  const field = (label, text) => el('div', { class: 'field-copy' }, el('span', {}, label), copyRow(text, true));
   return gateCard({
     n: 1, title: 'Instagram 계정을 만들어 주세요', mins: '3분',
     children: [
-      el('p', {}, '암호와 전화번호는 Instagram 에만 입력합니다. 여기서는 이름만 복사해 쓰면 됩니다. Threads 는 같은 Instagram 계정으로 바로 열립니다.'),
-      copyRow(svc.handle, true),
-      svc.oneliner ? copyRow(svc.oneliner) : null,
+      el('p', {}, '암호·전화번호는 Instagram 에만 넣습니다. 사용자 이름 칸에 붙여넣으면 Instagram 이 바로 쓸 수 있는지 알려 줍니다.'),
+      field('이름', svc.name),
+      field('사용자 이름', svc.handle),
       el('ul', { class: 'steps' },
-        el('li', {}, el('i', {}, '1'), el('span', {}, '가입 화면 열기 → 이메일·이름·사용자 이름(위 복사)·암호')),
-        el('li', {}, el('i', {}, '2'), el('span', {}, '설정 › 계정 유형 → 프로페셔널(비즈니스 또는 크리에이터) 로 전환 — 다음 단계(연결)에 꼭 필요합니다')),
-        el('li', {}, el('i', {}, '3'), el('span', {}, 'Threads 앱에서 같은 계정으로 로그인 → 프로필 생성'))),
+        el('li', {}, el('i', {}, '1'), el('span', {}, '가입 화면 → 이메일 · 이름 · 사용자 이름 · 암호')),
+        el('li', {}, el('i', {}, '2'), el('span', {}, '설정 › 계정 유형 → 프로페셔널(비즈니스·크리에이터)')),
+        el('li', {}, el('i', {}, '3'), el('span', {}, 'Threads 앱 → 같은 계정으로 로그인'))),
     ],
-    acts: [el('a', { class: 'btn', href: 'https://www.instagram.com/accounts/emailsignup/', target: '_blank', rel: 'noopener' }, 'Instagram 가입 열기'), done, later()],
+    acts: [el('a', { class: 'btn', href: 'https://www.instagram.com/accounts/emailsignup/', target: '_blank', rel: 'noopener' }, '가입 열기'), done, taken, later()],
   });
 }
 
@@ -226,21 +292,50 @@ function viewGateConnect(svc) {
   });
 }
 
-// 게이트 ③ 프로필 — API 가 프로필 수정을 막아 둬서 사람이 붙여넣는다.
+// 게이트 ③ 프로필 — 설명(사람) → 소개문 3안(AI) → 고르고 고치기(사람) → 붙여넣기(사람). API 가 프로필 수정을 막아 둬서.
 function viewGateProfile(svc) {
-  const st = S.st; const profile = st.settings.profile;
+  const st = S.st;
   const wrap = el('div');
-  const draw = (p) => {
+  const prof = () => st.settings.profile || {};
+  let step = !svc.brief || !(prof().options || []).length ? 'desc' : (!svc.bio ? 'pick' : 'paste');
+  const dots = (cur) => el('div', { class: 'stepdots', 'aria-label': '단계' }, ...['desc', 'pick', 'paste'].map((k, i) => el('i', { class: k === cur ? 'on' : (['desc', 'pick', 'paste'].indexOf(cur) > i ? 'done' : '') })));
+  const draw = () => {
     wrap.innerHTML = '';
-    if (!p) {
-      const gen = el('button', { class: 'btn ink', type: 'button' }, '소개문·이미지 만들기');
-      gen.addEventListener('click', async () => { try { const r = await withBusy(gen, () => api.profile(svc.id)); S.st.settings.profile = r.profile; S.st.service.bio = r.profile.bio; draw(r.profile); } catch (err) { toast(err.message === 'no_key' ? 'AI 키가 없습니다' : err.message, true); } });
-      wrap.append(gateCard({ n: 3, title: '프로필을 채워 주세요', mins: '1분', children: [el('p', {}, '소개문과 프로필 이미지를 만들어 드립니다. 로고가 있으면 그 로고를 쓰셔도 됩니다.')], acts: [gen, later()] }));
+    if (step === 'desc') {
+      const brief = el('textarea', { class: 'inp', id: 'profBrief', placeholder: '누구에게 무엇을 해 주는 서비스인가요? 한두 문장이면 됩니다', maxlength: 2000 }, svc.brief || '');
+      const home = el('input', { class: 'inp', id: 'profHome', placeholder: '링크 — 홈페이지·소개 페이지 (있으면)', value: svc.homepage || '', inputmode: 'url' });
+      const gen = el('button', { class: 'btn ink', type: 'button' }, '소개문 3안 만들기');
+      gen.addEventListener('click', async () => {
+        if (brief.value.trim().length < 5) { brief.focus(); brief.classList.add('bad'); return toast('한두 문장만 적어 주세요', true); }
+        try {
+          const r = await withBusy(gen, () => api.profile(svc.id, { brief: brief.value.trim(), homepage: home.value.trim() }));
+          st.settings.profile = r.profile; svc.brief = brief.value.trim(); svc.homepage = home.value.trim(); step = 'pick'; draw();
+        } catch (err) { toast(err.message === 'no_key' ? 'AI 키가 없습니다' : err.message === 'brief_required' ? '설명을 조금 더 적어 주세요' : '못 만들었습니다 — ' + err.message, true); }
+      });
+      wrap.append(gateCard({ n: 3, title: '어떤 서비스인가요?', mins: '1분', children: [dots('desc'), el('p', {}, '여기 적은 내용으로만 소개문을 만듭니다. 없는 기능은 쓰지 않습니다.'), brief, home], acts: [gen, later()] }));
       return;
     }
+    if (step === 'pick') {
+      const opts = prof().options || [];
+      let chosen = svc.bio || (opts[0] && opts[0].bio) || '';
+      const ta = el('textarea', { class: 'inp', id: 'profBio', maxlength: 150 }, chosen);
+      const count = el('div', { class: 'count' }, `${chosen.length} / 150`);
+      ta.addEventListener('input', () => { count.textContent = `${ta.value.length} / 150`; list.querySelectorAll('.opt').forEach((o) => o.setAttribute('aria-pressed', 'false')); });
+      const list = el('div', { class: 'opts' }, ...opts.map((o, i) => {
+        const b = el('button', { class: 'opt', type: 'button', 'aria-pressed': String(o.bio === chosen) }, el('small', {}, `${i + 1}안 · ${o.why || ''}`), el('span', {}, o.bio));
+        b.addEventListener('click', () => { ta.value = o.bio; count.textContent = `${o.bio.length} / 150`; list.querySelectorAll('.opt').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
+        return b;
+      }));
+      const use = el('button', { class: 'btn ink', type: 'button' }, '이걸로');
+      use.addEventListener('click', async () => { try { const r = await withBusy(use, () => api.bio(svc.id, ta.value.trim())); st.settings.profile = r.profile; svc.bio = r.profile.bio; step = 'paste'; draw(); } catch (err) { toast(err.message === 'bio_too_long' ? '150자를 넘었습니다' : err.message === 'bio_required' ? '소개문이 비었습니다' : err.message, true); } });
+      const back = el('button', { class: 'btn ghost', type: 'button', onclick: () => { step = 'desc'; draw(); } }, '설명 고치기');
+      wrap.append(gateCard({ n: 3, title: '소개문을 골라 주세요', mins: '1분', children: [dots('pick'), list, ta, count], acts: [use, back, later()] }));
+      return;
+    }
+    const p = prof();
     const img = el('img', { alt: '프로필 이미지 미리보기', src: '' });
     api.blob(`/api/services/${svc.id}/profile-image.svg`).then((b) => { img.src = URL.createObjectURL(b); }).catch(() => {});
-    const dl = el('button', { class: 'btn sm', type: 'button' }, st.caps.render ? 'JPG 내려받기' : 'SVG 내려받기');
+    const dl = el('button', { class: 'btn sm', type: 'button' }, st.caps.render ? 'JPG 받기' : 'SVG 받기');
     dl.addEventListener('click', async () => {
       try {
         const b = await withBusy(dl, () => api.blob(`/api/services/${svc.id}/profile-image.${st.caps.render ? 'jpg' : 'svg'}`));
@@ -249,23 +344,22 @@ function viewGateProfile(svc) {
     });
     const done = el('button', { class: 'btn ink', type: 'button' }, '넣었어요');
     done.addEventListener('click', async () => { try { await withBusy(done, () => api.gate(svc.id, 'profile', true)); S.forceHome = false; await load(); } catch (err) { toast(err.message, true); } });
-    const redo = el('button', { class: 'btn ghost', type: 'button' }, '다시 만들기');
-    redo.addEventListener('click', async () => { try { const r = await withBusy(redo, () => api.profile(svc.id)); S.st.settings.profile = r.profile; draw(r.profile); } catch (err) { toast(err.message, true); } });
+    const back = el('button', { class: 'btn ghost', type: 'button', onclick: () => { step = (p.options || []).length ? 'pick' : 'desc'; draw(); } }, '소개 고치기');
     wrap.append(gateCard({
-      n: 3, title: '프로필을 채워 주세요', mins: '1분',
+      n: 3, title: '프로필에 붙여넣어 주세요', mins: '1분',
       children: [
-        el('p', {}, 'Instagram 과 Threads 는 프로필 글·사진을 API 로 바꾸지 못하게 해 두었습니다. 아래를 복사해 앱의 프로필 편집에 붙여넣어 주세요.'),
-        el('div', { class: 'pic' }, img, el('div', { style: { display: 'grid', gap: '6px' } }, el('b', {}, '프로필 이미지'), el('span', { class: 'muted', style: { fontSize: '13px' } }, '로고가 있으면 로고를 쓰세요'), dl)),
-        copyRow(p.bio),
-        svc.homepage ? copyRow(svc.homepage, true) : null,
+        dots('paste'),
+        el('div', { class: 'pic' }, img, el('div', { style: { display: 'grid', gap: '6px' } }, el('b', {}, '프로필 이미지'), el('span', { class: 'muted', style: { fontSize: '13px' } }, '로고가 있으면 로고를'), dl)),
+        el('div', { class: 'field-copy' }, el('span', {}, '소개'), copyRow(svc.bio || p.bio || '')),
+        svc.homepage ? el('div', { class: 'field-copy' }, el('span', {}, '링크'), copyRow(svc.homepage, true)) : null,
         el('ul', { class: 'steps' },
-          el('li', {}, el('i', {}, 'I'), el('span', {}, 'Instagram › 프로필 편집 → 사진 · 소개 · 링크 붙여넣기')),
-          el('li', {}, el('i', {}, 'T'), el('span', {}, 'Threads › 프로필 편집 → 소개 붙여넣기(사진은 Instagram 것이 따라옵니다)'))),
+          el('li', {}, el('i', {}, 'I'), el('span', {}, 'Instagram › 프로필 편집 → 사진 · 소개 · 링크')),
+          el('li', {}, el('i', {}, 'T'), el('span', {}, 'Threads › 프로필 편집 → 소개'))),
       ],
-      acts: [redo, done, later()],
+      acts: [done, back, later()],
     }));
   };
-  draw(profile);
+  draw();
   return wrap;
 }
 
@@ -507,12 +601,12 @@ function openSettings() {
 function viewBriefEdit() {
   const svc = S.st.service;
   const name = el('input', { class: 'inp', value: svc.name, maxlength: 60 });
-  const one = el('input', { class: 'inp', value: svc.oneliner || '', maxlength: 80, placeholder: '한 줄 소개' });
   const home = el('input', { class: 'inp', value: svc.homepage || '', placeholder: '홈페이지' });
   const brief = el('textarea', { class: 'inp', placeholder: '누구에게 무엇을, 어떻게 다른지 — 글을 쓸 때 바탕이 됩니다' }, svc.brief || '');
+  const bio = el('textarea', { class: 'inp', maxlength: 150, placeholder: '계정 소개(150자)', style: { minHeight: '80px' } }, svc.bio || '');
   const save = el('button', { class: 'btn ink', type: 'button' }, '저장');
-  save.addEventListener('click', async () => { try { await withBusy(save, () => api.brief(svc.id, { name: name.value, oneliner: one.value, homepage: home.value, brief: brief.value })); toast('저장했습니다'); closeModal(); await load(true); } catch (err) { toast(err.message, true); } });
-  return el('div', { class: 'settings' }, el('h2', {}, '서비스 설명'), el('label', { class: 'field' }, el('span', {}, '이름'), name), el('label', { class: 'field' }, el('span', {}, '한 줄'), one), el('label', { class: 'field' }, el('span', {}, '홈페이지'), home), el('label', { class: 'field' }, el('span', {}, '설명'), brief), el('div', { class: 'acts' }, el('span', { class: 'spacer' }), save));
+  save.addEventListener('click', async () => { try { await withBusy(save, () => api.brief(svc.id, { name: name.value, homepage: home.value, brief: brief.value, bio: bio.value })); toast('저장했습니다'); closeModal(); await load(true); } catch (err) { toast(err.message, true); } });
+  return el('div', { class: 'settings' }, el('h2', {}, '서비스 설명'), el('label', { class: 'field' }, el('span', {}, '이름'), name), el('label', { class: 'field' }, el('span', {}, '홈페이지'), home), el('label', { class: 'field' }, el('span', {}, '설명'), brief), el('label', { class: 'field' }, el('span', {}, '소개'), bio), el('div', { class: 'acts' }, el('span', { class: 'spacer' }), save));
 }
 
 window.addEventListener('hashchange', () => { const q = new URLSearchParams(location.hash.replace(/^#\/?/, '')); if (q.get('s') && q.get('s') !== S.sid) { S.sid = q.get('s'); S.forceHome = false; load(); } });

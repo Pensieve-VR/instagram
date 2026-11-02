@@ -32,19 +32,45 @@ step('지난 시험 찌꺼기 치우기 → 빈 공간 state');
 
 step('서비스 만들기 → 후보');
 let sid;
-{ const r = await j('POST', '/api/services', { name: '될까?', brief: '아이디어 검증 도구' }); assert.equal(r.status, 201); sid = r.data.service.id; assert.match(sid, /^s[a-z0-9]+$/); assert.equal(r.data.service.candidates.length, 5); assert.ok(r.data.service.oneliner);
+{ const r = await j('POST', '/api/services', { name: '될까?', brief: '아이디어 검증 도구' }); assert.equal(r.status, 201); sid = r.data.service.id; assert.match(sid, /^s[a-z0-9]+$/); assert.equal(r.data.service.candidates.length, 6); assert.ok(r.data.service.candidates.every((c) => c.check === 'unchecked'));
   const empty = await j('POST', '/api/services', { name: '  ' }); assert.equal(empty.status, 400); }
+
+step('후보 — 있음 표시 → 다시 추천에서 빠짐 · 비었음은 남음 · 있는 이름은 고를 수 없음');
+{ const st0 = await j('GET', `/api/state?service=${sid}`); const [a, b] = st0.data.service.candidates;
+  assert.equal((await j('POST', `/api/services/${sid}/candidates/mark`, { handle: a.handle, check: 'taken' })).status, 200);
+  assert.equal((await j('POST', `/api/services/${sid}/candidates/mark`, { handle: b.handle, check: 'free' })).status, 200);
+  assert.equal((await j('POST', `/api/services/${sid}/candidates/mark`, { handle: b.handle, check: 'maybe' })).status, 400);
+  assert.equal((await j('POST', `/api/services/${sid}/candidates/mark`, { handle: '..x', check: 'free' })).status, 400);
+  const again = await j('POST', `/api/services/${sid}/candidates`, { hint: '짧게' }); assert.equal(again.status, 200);
+  const list = again.data.candidates; const handles = list.map((c) => c.handle);
+  assert.ok(list.find((c) => c.handle === a.handle && c.check === 'taken'), '있음은 제외 목록으로 남는다');
+  assert.ok(list.find((c) => c.handle === b.handle && c.check === 'free'), '비었음은 남는다');
+  assert.equal(new Set(handles).size, handles.length, '겹치는 후보 없음');
+  assert.ok(list.filter((c) => c.check === 'unchecked').length >= 1, '새 후보가 온다');
+  assert.equal((await j('POST', `/api/services/${sid}/handle`, { handle: a.handle })).status, 409); }
 
 step('이름 고르기 — 나쁜 이름 거절');
 { assert.equal((await j('POST', `/api/services/${sid}/handle`, { handle: '..bad' })).status, 400);
   const r = await j('POST', `/api/services/${sid}/handle`, { handle: '@Delka.KR' }); assert.equal(r.status, 200); assert.equal(r.data.handle, 'delka.kr'); }
 
+step('고른 이름이 이미 있대요 → 이름이 비고 이름 고르기로');
+{ await j('POST', `/api/services/${sid}/handle`, { handle: 'tmp.check.name' });
+  await j('POST', `/api/services/${sid}/candidates/mark`, { handle: 'tmp.check.name', check: 'taken' });
+  const st = await j('GET', `/api/state?service=${sid}`); assert.equal(st.data.service.handle, '');
+  assert.ok(st.data.service.candidates.find((c) => c.handle === 'tmp.check.name' && c.check === 'taken'));
+  assert.equal((await j('POST', `/api/services/${sid}/handle`, { handle: 'delka.kr' })).data.handle, 'delka.kr'); }
+
 step('게이트 ① 통과 · 잘못된 게이트 거절');
 { assert.equal((await j('POST', `/api/services/${sid}/gates/nope`, { done: true })).status, 400);
   const r = await j('POST', `/api/services/${sid}/gates/signup`, { done: true }); assert.equal(r.status, 200); assert.equal(r.data.gates.signup, 1); }
 
-step('프로필 생성 · 이미지');
-{ const r = await j('POST', `/api/services/${sid}/profile`); assert.equal(r.status, 200); assert.ok(r.data.profile.bio);
+step('소개문 — 설명 없으면 거절 · 3안 · 고른 안 확정 · 150자 넘으면 거절');
+{ assert.equal((await j('POST', `/api/services/${sid}/profile`, { brief: '' })).status, 400); // 비운 설명으로는 만들지 않는다(처음 넣은 설명이 있으면 빈 몸은 그 설명을 쓴다)
+  const r = await j('POST', `/api/services/${sid}/profile`, { brief: '창업 아이디어를 14갈래로 조사해 주는 도구', homepage: 'delka.pensieve.kr' }); assert.equal(r.status, 200); assert.equal(r.data.profile.options.length, 3);
+  const st = await j('GET', `/api/state?service=${sid}`); assert.equal(st.data.service.brief, '창업 아이디어를 14갈래로 조사해 주는 도구'); assert.equal(st.data.service.homepage, 'https://delka.pensieve.kr');
+  assert.equal((await j('POST', `/api/services/${sid}/bio`, { bio: 'x'.repeat(151) })).status, 400);
+  assert.equal((await j('POST', `/api/services/${sid}/bio`, { bio: '  ' })).status, 400);
+  const b = await j('POST', `/api/services/${sid}/bio`, { bio: r.data.profile.options[1].bio }); assert.equal(b.status, 200); assert.equal(b.data.profile.bio, r.data.profile.options[1].bio);
   const img = await fetch(BASE + `/api/services/${sid}/profile-image.svg`, { headers: h() }); assert.equal(img.status, 200); assert.match(img.headers.get('content-type'), /svg/);
   const noauth = await fetch(BASE + `/api/services/${sid}/profile-image.svg`); assert.equal(noauth.status, 401); }
 
@@ -59,7 +85,7 @@ step('소재 — 글 · 잘못된 종류 · 파일(md)');
 
 step('설정 — 손상 입력은 기본으로');
 { const r = await j('POST', `/api/services/${sid}/settings`, { approval: 'auto', ig: { slots: [{ dow: 2, hm: '20:00' }, { dow: 99, hm: 'x' }] }, th: { slots: [{ dow: 1, hm: '12:30' }] } });
-  assert.equal(r.status, 200); assert.equal(r.data.settings.approval, 'auto'); assert.deepEqual(r.data.settings.ig.slots, [{ dow: 2, hm: '20:00' }]); assert.equal(r.data.settings.profile && r.data.settings.profile.bio.length > 0, true); }
+  assert.equal(r.status, 200); assert.equal(r.data.settings.approval, 'auto'); assert.deepEqual(r.data.settings.ig.slots, [{ dow: 2, hm: '20:00' }]); assert.equal(r.data.settings.profile.options.length, 3, '설정 저장이 소개문 안을 지우지 않는다'); }
 
 step('이번 주 채우기(mock) → 역 생성');
 let posts;

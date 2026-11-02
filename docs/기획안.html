@@ -315,8 +315,8 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
  <div class="cols">
   <div class="sheet who" data-tag="시스템이">
    <ul>
-    <li>서비스 이름 → 계정명 후보 5개 (빈 이름인지 확인)</li>
-    <li>소개문·프로필 이미지 초안 · 링크 정리</li>
+    <li>서비스 이름 → 계정명 후보 6개 · 바라는 점을 적어 다시 추천 · 있는 이름은 빠지고 새 후보로 채움</li>
+    <li>사람이 적은 설명으로만 소개문 3안 · 프로필 이미지</li>
     <li>소재(제품 이미지·설명서·홈페이지)에서 게시물 생성 — 초안 → 한 번 더 다듬기(두 번 쓰기)</li>
     <li>예약 → 게시 — 적게, 잘: Instagram 주 2 · Threads 평일 하루 1 (슬롯은 설정에서)</li>
     <li>성과 좋은 글 자동 광고 (Instagram 피드 + Threads 지면)</li>
@@ -325,9 +325,10 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
   </div>
   <div class="sheet who gate" data-tag="사람이 · 게이트 3번">
    <ul>
-    <li><b>① 가입</b> — 아이디·암호·전화 인증. 시스템이 화면을 열고 채울 값을 옆에 띄운다. 3분.</li>
+    <li><b>이름 확인</b> — 후보마다 ↗ 로 Instagram 에서 열어 보고 ✓ 비었음 / ✕ 있음. 서버는 Instagram 을 긁지 않는다(약관·차단).</li>
+    <li><b>① 가입</b> — 이름·사용자 이름을 복사해 붙여넣기. 가입 화면이 최종 판정 — 있다고 나오면 「이미 있대요」로 다시 고르기. 3분.</li>
     <li><b>② 연결</b> — 프로 계정 전환 · Facebook 페이지 연결 · 앱 권한 허용. 클릭만.</li>
-    <li><b>③ 프로필</b> — 사진·소개 붙여넣기. API가 프로필 수정을 막아 둬서 사람이 넣는다. 1분.</li>
+    <li><b>③ 프로필</b> — 서비스 설명 적기 → 소개문 3안 중 고르고 고치기 → 사진·소개 붙여넣기. API가 프로필 수정을 막아 둬서 사람이 넣는다.</li>
     <li class="muted">광고는 첫 한 번 결제수단·사업자 인증(Meta 비즈니스)이 더 필요하다.</li>
    </ul>
   </div>
@@ -361,9 +362,9 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
   </figcaption>
  </figure>
  <div class="cols">
-  <div class="sheet gate"><h4>게이트 ① 가입</h4><p>화면 한 장에 <b>열기</b> 버튼과 복사용 값(계정명·소개 한 줄)만 둔다. 암호·전화번호는 시스템이 받지도 저장하지도 않는다. 사용자가 「만들었어요」를 누르면 다음으로.</p></div>
+  <div class="sheet gate"><h4>게이트 ① 가입</h4><p>화면 한 장에 <b>가입 열기</b>와 복사용 값(이름·사용자 이름)만 둔다. 암호·전화번호는 시스템이 받지도 저장하지도 않는다. 가입 화면에서 이름이 있다고 나오면 「이미 있대요」 → 그 이름은 빠지고 이름 고르기로.</p></div>
   <div class="sheet gate"><h4>게이트 ② 연결</h4><p>프로 계정 전환 → 페이지 연결 → Meta 로그인 창에서 권한 허용. 끝나면 토큰이 들어오고 노선 두 개(Instagram·Threads)가 화면에 그려진다.</p></div>
-  <div class="sheet gate"><h4>게이트 ③ 프로필</h4><p>생성된 소개문·프로필 이미지를 복사·다운로드해 앱에서 붙여넣는다. 요청하신 「계정 이미지는 넣어 달라고 요청」도 여기서 — 로고를 주면 1:1로 다듬어 준다.</p></div>
+  <div class="sheet gate"><h4>게이트 ③ 프로필</h4><p>세 걸음: <b>설명</b>(누구에게 무엇을 — 사람이 적는다) → <b>소개문 3안</b>(그 설명으로만, 없는 기능은 안 씀) 중 고르고 고치기 → <b>붙여넣기</b>(소개·링크·프로필 이미지).</p></div>
  </div>
  <details class="fb" data-fb="1 흐름"><summary>이 장 피드백</summary><textarea id="fb-c1" placeholder="순서·분기·게이트 위치"></textarea></details>
 </section>
@@ -631,12 +632,12 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
   {title:'개설 — 한 번', nodes:[
    {id:'A1',type:'term',lab:'시작'},
    {id:'A2',type:'io',lab:'서비스 이름 입력'},
-   {id:'A3',type:'proc',lab:'계정명 후보 5개 생성\n빈 이름인지 확인',ai:1},
-   {id:'A4',type:'dec',lab:'마음에 드는\n이름?'},
+   {id:'A3',type:'proc',lab:'계정명 후보 6개\n바라는 점 반영',ai:1},
+   {id:'A4',type:'man',lab:'Instagram ↗ 에서 보고\n✓ 비었음 · ✕ 있음'},
    {id:'A5',type:'man',lab:'게이트 ① 가입\n아이디·암호·전화 인증 · 3분'},
    {id:'A6',type:'man',lab:'게이트 ② 연결\n프로 계정 · 페이지 · 권한 허용'},
    {id:'A7',type:'proc',lab:'토큰 저장\nInstagram·Threads 노선 생성'},
-   {id:'A8',type:'proc',lab:'소개문·프로필 이미지\n초안 생성',ai:1},
+   {id:'A8',type:'proc',lab:'설명(사람) → 소개문 3안\n고르고 고치기',ai:1},
    {id:'A9',type:'man',lab:'게이트 ③ 프로필\n사진·소개 붙여넣기 · 1분'}
   ]},
   {title:'운영 — 계속', nodes:[
@@ -675,13 +676,13 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
  cols.forEach(function(c){ c.nodes.forEach(function(n){ svg.appendChild(shape(n)); }); });
  // default edges (straight down), skipping custom-handled ones
  var skipDefault={'A9':1,'B9':1};
- var labelAfter={'A4':'예','B3':'예','B6':'예'};
+ var labelAfter={'A4':'비었음','B3':'예','B6':'예'};
  cols.forEach(function(c){ c.nodes.forEach(function(n,i){ var nx=c.nodes[i+1]; if(!nx||skipDefault[n.id])return; var p=el('path',{d:'M'+n.cx+' '+(n.y+n.h)+'V'+nx.y,'class':'edge','marker-end':'url(#fa)'}); svg.appendChild(p); if(labelAfter[n.id]){var t=el('text',{x:n.cx+8,y:n.y+n.h+14,'class':'edge-label'}); t.textContent=labelAfter[n.id]; svg.appendChild(t);} }); });
  // custom edges: exit/enter sides, x = vertical run
  function pt(n,side){ if(side==='right')return [n.x+W,n.cy]; if(side==='left')return [n.x,n.cy]; if(side==='top')return [n.cx,n.y]; return [n.cx,n.y+n.h]; }
  function edge(from,to,exit,enter,x,label,no){ var a=byId[from],b=byId[to]; var p1=pt(a,exit),p2=pt(b,enter); var d='M'+p1[0]+' '+p1[1]+'H'+x+'V'+p2[1]+'H'+p2[0]; var p=el('path',{d:d,'class':'edge'+(no?' no':''),'marker-end':no?'url(#fb)':'url(#fa)'}); svg.appendChild(p); if(label){var t=el('text',{x:x+6,y:(p1[1]+p2[1])/2+4,'class':'edge-label'}); t.textContent=label; svg.appendChild(t);} }
  var A=byId.A1, B=byId.B1;
- edge('A4','A3','right','right',A.x+W+28,'아니오',true);      // 다시 고르기
+ edge('A4','A3','right','right',A.x+W+28,'있음',true);      // 있는 이름은 빼고 다시 추천
  edge('B3','B5','right','right',B.x+W+28,'아니오',true);      // 승인 없이
  edge('B6','B8','right','right',B.x+W+28,'아니오',true);      // 광고 없이
  edge('B8','B2','left','left',B.x-26,'다음 글',false);          // 루프

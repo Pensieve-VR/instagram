@@ -79,8 +79,9 @@ test('mergeSettings — 손상 입력을 기본으로', () => {
   assert.deepEqual(mergeSettings({ ig: { slots: [] } }).ig.slots, []); // 빈 배열은 "안 올림"이라는 뜻 — 기본으로 되돌리지 않는다
   // 프로필은 있을 때만 들고 간다(설정 저장이 프로필을 지우던 버그의 회귀 방어)
   assert.equal('profile' in mergeSettings({}), false);
-  assert.deepEqual(mergeSettings({ profile: { bio: 'b', palette: 'bad', monogram: 'ABC' } }).profile, { bio: 'b', link_text: '', monogram: 'AB', palette: 'rose' });
-  assert.deepEqual(mergeSettings({ ...mergeSettings({ profile: { bio: 'x', palette: 'teal' } }), approval: 'auto' }).profile, { bio: 'x', link_text: '', monogram: '', palette: 'teal' });
+  assert.deepEqual(mergeSettings({ profile: { bio: 'b', palette: 'bad', monogram: 'ABC' } }).profile, { bio: 'b', link_text: '', monogram: 'AB', palette: 'rose', options: [] });
+  assert.deepEqual(mergeSettings({ profile: { options: [{ bio: 'x', why: 'y' }, { bio: '' }, null, { bio: 'z' }] } }).profile.options, [{ bio: 'x', why: 'y' }, { bio: 'z', why: '' }]); // 빈 안·깨진 안은 버린다
+  assert.deepEqual(mergeSettings({ ...mergeSettings({ profile: { bio: 'x', palette: 'teal' } }), approval: 'auto' }).profile, { bio: 'x', link_text: '', monogram: '', palette: 'teal', options: [] });
 });
 
 test('signals', () => {
