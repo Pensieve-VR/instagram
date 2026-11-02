@@ -24,16 +24,18 @@ export default {
     }
   },
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(cron(env, controller.cron));
+    ctx.waitUntil(cron(env, controller.scheduledTime || Date.now()));
   },
 };
 
-async function cron(env, expr) {
+// 크론 하나(5분). 00:00~00:04 UTC 틱(09:00 KST)은 하루 일도 함께 한다.
+export const isDailyTick = (ms) => { const d = new Date(ms); return d.getUTCHours() === 0 && d.getUTCMinutes() < 5; };
+
+async function cron(env, at) {
   try {
-    if (expr !== '0 0 * * *') { // 5분 틱 — 게시. 00:00 UTC 에 두 크론이 겹쳐도 게시는 한쪽만 돈다
-      const due = await ops.publishDue(env);
-      if (due.length) console.log('publishDue', JSON.stringify(due));
-    } else { // 09:00 KST — 지표·요약·토큰
+    const due = await ops.publishDue(env);
+    if (due.length) console.log('publishDue', JSON.stringify(due));
+    if (isDailyTick(at)) { // 09:00 KST — 지표·요약·토큰
       await ops.refreshTokens(env);
       for (const id of await ops.allServiceIds(env)) {
         try { await ops.dailySummary(env, id); } catch (e) { console.error('daily', id, e && e.message); }

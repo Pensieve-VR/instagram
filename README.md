@@ -36,7 +36,7 @@ wrangler.jsonc     바인딩(D1 · KV · Browser) · 크론 · 공개 변수 (�
 
 ## 운영자 설정 (사람이 한 번)
 
-Cloudflare 대시보드 › Workers 및 Pages › **pensieve-instagram** › 설정 › 변수 및 비밀 → **비밀(암호화)**:
+Cloudflare 대시보드 › **pensieve-instagram** › 설정 › **빌드 › 변수 및 암호** → 유형 **비밀** (배포 명령 `node scripts/deploy.mjs` 가 배포 때마다 런타임 비밀로 옮긴다. 설정 › 변수 및 비밀(런타임)에 직접 넣어도 된다):
 
 - `PASSWORDS` — `이름=암호` 를 쉼표로 여러 개 (BM·브레인 스토밍과 같은 형식). 이름마다 공간이 따로
 - `ANTHROPIC_API_KEY` — Claude 키
@@ -49,7 +49,7 @@ Meta 앱(developers.facebook.com)에서:
 - 앱 역할에 운영할 Instagram 계정 추가 — 자체 계정은 앱 심사 없이 개발 모드로 충분
 - Instagram 계정은 **프로페셔널**(비즈니스/크리에이터) 이어야 연결된다
 
-Cloudflare 자원(전부 무료 요금제, 카드 불필요): D1 `instagram` · KV `instagram-media`(이미지 공개 서빙) · Browser Rendering(카드 이미지; 없으면 소재 이미지만 쓴다) · 크론 `*/5 * * * *`, `0 0 * * *`
+Cloudflare 자원(전부 무료 요금제, 카드 불필요): D1 `instagram` · KV `instagram-media`(이미지 공개 서빙) · Browser Rendering(카드 이미지; 없으면 소재 이미지만 쓴다) · 크론 `*/5 * * * *` 하나(00:00 UTC 틱이 하루 일도 함께)
 
 ## 로컬 실행 · 검사
 
@@ -63,7 +63,7 @@ npm run check        # 문법 검사
 
 ## 배포
 
-`main` 푸시 → Cloudflare Workers Builds (빌드 `node scripts/stamp.mjs`, 배포 `npx wrangler deploy`) → instagram.pensieve.kr
+`main` 푸시 → Cloudflare Workers Builds (빌드 `node scripts/stamp.mjs`, 배포 `node scripts/deploy.mjs` = wrangler deploy + 빌드 비밀 → 런타임 비밀) → instagram.pensieve.kr
 
 ## 지키는 것
 

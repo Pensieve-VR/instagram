@@ -1,6 +1,7 @@
 {
   // 홍보실 — Cloudflare Workers (정적 화면 + API + 크론). Pages가 아닌 이유: 예약 게시 크론이 Workers에만 있다.
-  // 비밀은 여기 두지 않는다 → Cloudflare 대시보드 › Workers 및 Pages › pensieve-instagram › 설정 › 변수 및 비밀(암호화)
+  // 비밀은 여기 두지 않는다 → Cloudflare 대시보드 › pensieve-instagram › 설정 › 빌드 › 변수 및 암호(비밀)
+  //   배포 명령 node scripts/deploy.mjs 가 배포 때마다 런타임 비밀로 옮긴다(설정 › 변수 및 비밀에 직접 넣어도 된다)
   //   PASSWORDS           "이름=암호" 를 쉼표로 여러 개 (BM·브레인 스토밍과 같은 형식) — 이름마다 따로 공간
   //   ANTHROPIC_API_KEY   Claude 키 (BM·브레인 스토밍에 쓴 키 그대로)
   //   IG_APP_ID · IG_APP_SECRET            Meta 앱 › Instagram › API setup with Instagram login 의 앱 ID·시크릿
@@ -13,9 +14,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "single-page-application" },
   "observability": { "enabled": true },
+  "workers_dev": true,
+  "preview_urls": false,
   "triggers": {
-    // 5분마다 예약 게시·컨테이너 확인 · 매일 00:00 UTC(09:00 KST) 지표 수집·요약·토큰 갱신
-    "crons": ["*/5 * * * *", "0 0 * * *"]
+    // 크론 하나 — 5분마다 예약 게시. 00:00 UTC(09:00 KST) 틱은 지표·요약·토큰 갱신도 함께(무료 요금제 크론 수를 아낀다)
+    "crons": ["*/5 * * * *"]
   },
   "vars": {
     "CLAUDE_MODEL": "claude-sonnet-5-5",

@@ -92,3 +92,11 @@ test('signals', () => {
   const bad = signals({ channels: [{ kind: 'ig', hasToken: false }, { kind: 'th', hasToken: true, status: 'expired' }], posts: [{ state: 'failed' }], nowMs: now });
   assert.deepEqual(bad.map((s) => s.kind), ['unlinked', 'expired', 'failed']);
 });
+
+test('하루 일 틱 — 00:00~00:04 UTC 만', async () => {
+  const { isDailyTick } = await import('../src/index.js');
+  assert.equal(isDailyTick(Date.UTC(2026, 10, 2, 0, 0)), true);
+  assert.equal(isDailyTick(Date.UTC(2026, 10, 2, 0, 4, 59)), true);
+  assert.equal(isDailyTick(Date.UTC(2026, 10, 2, 0, 5)), false);
+  assert.equal(isDailyTick(Date.UTC(2026, 10, 2, 23, 55)), false);
+});
