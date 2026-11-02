@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>홍보실 기획안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* 레이아웃: 한 열 문서. 왼쪽 여백 없이 위에서 아래로. 장마다 결론 → 그림 → 조건 → 피드백 칸. */
+/* 색·글·움직임 토큰은 펜시브 페이퍼 디자인 시스템(될까? design/tokens)과 같다. 이 도구만의 역할색은 아래 --line-* 에만 있다. */
+:root{
+ --paper-page:#f4efe5; --paper-sheet:#fcf9f2; --paper-desk:#ebe4d6; --paper-rule:#d2c7b2; --paper-tab:#e5cc9d; --paper-sage:#cad1b4; --paper-question:#f8eab8; --paper-negative:#f3dcd2;
+ --ink:#37322b; --ink-muted:#6d6456; --ink-pencil:#a69d8b; --ink-hi:#edc54c; --on-hi:#37322b; --on-ink:#fcf9f2;
+ --ink-red:#c2552f; --ink-blue:#2f66d2; --ink-green:#5b8a4c; --ink-navy:#4a5680; --ink-rust:#a85c45; --ink-teal:#3d7f7a; --ink-ochre:#92742b; --ink-violet:#7a6195; --ink-rose:#b45a6a;
+ --line-ig:var(--ink-rose); --line-th:var(--ink); --line-ad:var(--ink-ochre); --line-gate:var(--ink-hi); --line-ai:var(--ink-violet);
+ --sig-ok:var(--ink-green); --sig-warn:var(--ink-ochre); --sig-bad:var(--ink-red);
+ --shadow-sheet:0 1px 1px #3a32261a, 0 10px 24px -14px #3a322652; --shadow-float:0 0 0 1px #d2c7b2, 0 2px 2px #3a32261a, 0 30px 60px -20px #3a322666;
+ --font-sans:"Pretendard Variable",Pretendard,"IBM Plex Sans KR","Noto Sans KR",system-ui,-apple-system,sans-serif;
+ --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px; --space-12:48px;
+ --radius-sheet:4px; --radius-ui:10px; --radius-float:22px; --radius-pill:999px;
+ --t-fast:180ms; --t-state:240ms; --t-move:360ms; --t-grow:560ms; --t-breathe:1800ms;
+ --ease-settle:cubic-bezier(.2,.9,.12,1); --ease-pop:cubic-bezier(.2,1.4,.4,1); --ease-glide:cubic-bezier(.45,0,.2,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --paper-page:#1f1c18; --paper-sheet:#2a2622; --paper-desk:#171512; --paper-rule:#4a4338; --paper-tab:#5a4a2a; --paper-sage:#3e4a36; --paper-question:#494027; --paper-negative:#4d3027;
+ --ink:#ece5d8; --ink-muted:#a99f90; --ink-pencil:#6b6356; --ink-hi:#d9b43f; --on-hi:#1f1c18; --on-ink:#1f1c18;
+ --ink-red:#dd7d5b; --ink-blue:#6e96e5; --ink-green:#69a456; --ink-navy:#8793bd; --ink-rust:#c98570; --ink-teal:#4aa59e; --ink-ochre:#b69031; --ink-violet:#a38fb9; --ink-rose:#ca818e;
+ --shadow-sheet:0 1px 1px #00000066, 0 10px 24px -14px #000000b3; --shadow-float:0 0 0 1px #4a4338, 0 2px 2px #00000066, 0 30px 60px -20px #000000d9;
+ color-scheme:dark}}
+:root[data-theme="dark"]{
+ --paper-page:#1f1c18; --paper-sheet:#2a2622; --paper-desk:#171512; --paper-rule:#4a4338; --paper-tab:#5a4a2a; --paper-sage:#3e4a36; --paper-question:#494027; --paper-negative:#4d3027;
+ --ink:#ece5d8; --ink-muted:#a99f90; --ink-pencil:#6b6356; --ink-hi:#d9b43f; --on-hi:#1f1c18; --on-ink:#1f1c18;
+ --ink-red:#dd7d5b; --ink-blue:#6e96e5; --ink-green:#69a456; --ink-navy:#8793bd; --ink-rust:#c98570; --ink-teal:#4aa59e; --ink-ochre:#b69031; --ink-violet:#a38fb9; --ink-rose:#ca818e;
+ --shadow-sheet:0 1px 1px #00000066, 0 10px 24px -14px #000000b3; --shadow-float:0 0 0 1px #4a4338, 0 2px 2px #00000066, 0 30px 60px -20px #000000d9;
+ color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+html{height:auto}
+body{margin:0;background:var(--paper-page);color:var(--ink);font-family:var(--font-sans);font-size:16px;font-weight:450;line-height:1.6;overflow-wrap:break-word;word-break:keep-all;padding-block:0 var(--space-12);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper-sheet)}
+a{color:var(--ink);text-decoration-color:var(--paper-rule);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+:is(a,button,textarea,summary):focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.02em}
+h1{font-size:clamp(26px,4vw,34px);font-weight:800;line-height:1.2}
+h2{font-size:26px;font-weight:800;line-height:1.25}
+h3{font-size:20px;font-weight:700;line-height:1.3}
+h4{font-size:16px;font-weight:650}
+p{margin:0}
+small,.cap{font-size:12.5px;color:var(--ink-muted)}
+.muted{color:var(--ink-muted)}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1080px;margin:0 auto}
+
+/* 머리 */
+.head{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-right,0px)));background:var(--paper-sheet);border-bottom:1.5px solid var(--paper-rule)}
+.head .wrap{display:flex;align-items:center;gap:var(--space-4);min-height:56px;padding-block:var(--space-2);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{display:flex;align-items:center;gap:var(--space-3);font-weight:800;font-size:18px;min-width:0}
+.brand svg{width:28px;height:28px;flex:none}
+.brand small{font-weight:450;color:var(--ink-muted)}
+.head-actions{margin-left:auto;display:flex;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);min-height:36px;padding:6px 14px;border:1.5px solid var(--paper-rule);border-radius:var(--radius-ui);background:var(--paper-sheet);color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background var(--t-fast) var(--ease-settle),border-color var(--t-fast) var(--ease-settle),transform var(--t-fast) var(--ease-settle)}
+.btn:hover{background:var(--paper-desk);border-color:var(--ink-pencil)}
+.btn:active{transform:translateY(1px)}
+.btn.ink{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.btn.ink:hover{background:var(--ink-muted);border-color:var(--ink-muted)}
+.btn.hi{background:var(--ink-hi);color:var(--on-hi);border-color:var(--ink-hi)}
+.btn.ghost{background:transparent}
+
+/* 차례 */
+.toc{display:flex;gap:var(--space-2);flex-wrap:wrap;padding-block:var(--space-6) 0}
+.toc a{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1.5px solid var(--paper-rule);border-radius:var(--radius-pill);background:var(--paper-sheet);font-size:14px;font-weight:600;text-decoration:none;color:var(--ink-muted)}
+.toc a:hover{color:var(--ink);border-color:var(--ink-pencil)}
+.toc a b{font-weight:450;color:var(--ink-pencil);font-variant-numeric:tabular-nums}
+
+/* 장 */
+.hero{padding-block:var(--space-8) var(--space-6)}
+.hero .meta{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);margin-top:var(--space-4);font-size:14px;color:var(--ink-muted)}
+.hero .meta b{color:var(--ink);font-weight:600}
+.chapter{padding-block:var(--space-12) 0;scroll-margin-top:80px}
+.chapter-head{display:flex;align-items:baseline;gap:var(--space-3);margin-bottom:var(--space-4)}
+.chapter-head .idx{font-size:14px;font-weight:600;color:var(--ink-pencil);font-variant-numeric:tabular-nums}
+.lead{font-size:18px;line-height:1.55;max-width:70ch}
+.lead b{font-weight:700}
+.stack{display:grid;gap:var(--space-4);margin-top:var(--space-6)}
+.cols{display:grid;gap:var(--space-4);grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin-top:var(--space-6)}
+.cols>*{min-width:0}
+.cols.two{grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))}
+
+/* 낱장 */
+.sheet{background:var(--paper-sheet);border:1.5px solid var(--paper-rule);border-radius:var(--radius-sheet);box-shadow:var(--shadow-sheet);padding:var(--space-4) var(--space-6)}
+.sheet h3,.sheet h4{margin-bottom:var(--space-3)}
+.sheet ul{margin:0;padding-left:1.1em;display:grid;gap:6px}
+.sheet li::marker{color:var(--ink-pencil)}
+.sheet.who{position:relative;padding-top:var(--space-6)}
+.sheet.who::before{content:attr(data-tag);position:absolute;top:-11px;left:var(--space-4);padding:2px 10px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;background:var(--ink);color:var(--on-ink)}
+.sheet.who.gate::before{background:var(--ink-hi);color:var(--on-hi)}
+.sheet.who.rule::before{background:var(--paper-sage);color:var(--ink)}
+.sheet.gate{border-color:var(--ink-hi);background:linear-gradient(0deg,var(--paper-sheet),var(--paper-sheet)),var(--paper-question)}
+.pin{border-left:4px solid var(--ink-hi);padding:var(--space-3) var(--space-4);background:var(--paper-question);color:var(--ink);border-radius:0 var(--radius-sheet) var(--radius-sheet) 0;max-width:72ch}
+.pin b{font-weight:700}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px var(--space-4);align-items:baseline}
+.kv dt{font-weight:650;color:var(--ink-muted);font-size:14px}
+.kv dd{margin:0}
+
+/* 그림 */
+.figure{margin-top:var(--space-6);background:var(--paper-sheet);border:1.5px solid var(--paper-rule);border-radius:var(--radius-sheet);box-shadow:var(--shadow-sheet);overflow-x:auto;padding:var(--space-4)}
+.figure svg{display:block;max-width:100%;height:auto;font-family:var(--font-sans)}
+.figure figcaption{margin-top:var(--space-3);font-size:13px;color:var(--ink-muted);display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4)}
+.legend{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:14px;border:2px solid var(--ink);background:var(--paper-sheet);border-radius:2px}
+.legend i.dia{transform:rotate(45deg) scale(.8)}
+.legend i.io{transform:skewX(-14deg)}
+.legend i.man{clip-path:polygon(0 0,100% 0,82% 100%,18% 100%);border-color:var(--ink-hi);background:var(--paper-question)}
+.legend i.pre{box-shadow:inset 3px 0 0 var(--paper-sheet),inset -3px 0 0 var(--paper-sheet),inset 4.5px 0 0 var(--ink),inset -4.5px 0 0 var(--ink)}
+.legend i.term{border-radius:999px}
+.legend i.doc{border-radius:2px 2px 8px 2px}
+
+/* 흐름도 svg 요소 */
+.fc .shape{fill:var(--paper-sheet);stroke:var(--ink);stroke-width:2}
+.fc .shape.gate{fill:var(--paper-question);stroke:var(--ink-hi);stroke-width:2.5}
+.fc .shape.ai{stroke:var(--ink-violet)}
+.fc .label{fill:var(--ink);font-size:13px;font-weight:600}
+.fc .label.small{font-size:12px;font-weight:500;fill:var(--ink-muted)}
+.fc .edge{fill:none;stroke:var(--ink);stroke-width:1.75}
+.fc .edge.no{stroke:var(--ink-muted);stroke-dasharray:5 4}
+.fc .edge-label{fill:var(--ink-muted);font-size:11.5px;font-weight:600;paint-order:stroke;stroke:var(--paper-sheet);stroke-width:4px;stroke-linejoin:round}
+.fc .col-title{fill:var(--ink-muted);font-size:12px;font-weight:700;letter-spacing:.08em}
+
+/* 구조도 */
+.arch .box{fill:var(--paper-sheet);stroke:var(--ink);stroke-width:1.75;rx:4}
+.arch .box.cf{stroke:var(--ink-teal)}
+.arch .box.meta{stroke:var(--ink-rose)}
+.arch .box.ai{stroke:var(--ink-violet)}
+.arch .box.opt{stroke-dasharray:5 4;stroke:var(--ink-muted)}
+.arch .zone{fill:var(--paper-desk);stroke:none;rx:8}
+.arch .t{fill:var(--ink);font-size:13px;font-weight:650}
+.arch .s{fill:var(--ink-muted);font-size:11.5px;font-weight:500}
+.arch .z{fill:var(--ink-muted);font-size:11.5px;font-weight:700;letter-spacing:.08em}
+.arch .e{fill:none;stroke:var(--ink);stroke-width:1.5}
+.arch .e.dash{stroke-dasharray:5 4;stroke:var(--ink-muted)}
+
+/* 단계 노선 */
+.phases{display:grid;gap:0;margin-top:var(--space-6);position:relative}
+.phase{display:grid;grid-template-columns:28px 1fr;gap:var(--space-4);padding-block:var(--space-4);position:relative}
+.phase::before{content:"";position:absolute;left:13px;top:0;bottom:0;width:2px;background:var(--paper-rule)}
+.phase:first-child::before{top:50%}.phase:last-child::before{bottom:50%}
+.phase .dot{position:relative;z-index:1;width:28px;height:28px;border-radius:50%;border:3px solid var(--ink);background:var(--paper-sheet);display:grid;place-items:center;font-size:12px;font-weight:800;align-self:start;margin-top:2px}
+.phase.now .dot{background:var(--ink);color:var(--on-ink)}
+.phase .body{min-width:0}
+.phase .body h3{margin-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--space-3)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--radius-pill);border:1.5px solid var(--paper-rule);background:var(--paper-sheet);font-size:13px;font-weight:600;color:var(--ink)}
+.chip.ig{border-color:var(--line-ig);color:var(--line-ig)}
+.chip.th{border-color:var(--line-th)}
+.chip.ad{border-color:var(--line-ad);color:var(--line-ad)}
+.chip.gate{border-color:var(--line-gate);background:var(--paper-question)}
+
+/* 화면 5장 */
+.screens{display:grid;gap:var(--space-4);grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));margin-top:var(--space-6)}
+.screen{min-width:0}
+.screen .frame{aspect-ratio:4/3;max-width:100%;border:1.5px solid var(--paper-rule);border-radius:var(--radius-ui);background:var(--paper-page);position:relative;overflow:hidden;box-shadow:var(--shadow-sheet)}
+.screen h4{margin-top:var(--space-3)}
+.screen p{font-size:13.5px;color:var(--ink-muted);margin-top:4px}
+.mk{position:absolute;border-radius:6px;background:var(--paper-sheet);border:1.5px solid var(--paper-rule)}
+.mk.inp{left:14%;right:14%;top:44%;height:14%;border-radius:999px;border-color:var(--ink)}
+.mk.inp::after{content:"";position:absolute;left:8%;top:35%;width:2px;height:30%;background:var(--ink);animation:blink 1.2s steps(2) infinite}
+.mk.card{left:12%;right:12%;height:12%}
+.mk.card.pick{border-color:var(--ink);background:var(--paper-question)}
+.mk.line{height:3px;border:0;left:10%;right:10%;border-radius:2px}
+.mk.line.ig{background:var(--line-ig)}
+.mk.line.th{background:var(--line-th)}
+.mk.st{width:13px;height:13px;border-radius:50%;border:2.5px solid var(--ink);background:var(--paper-sheet);transform:translate(-50%,-50%)}
+.mk.st.draft{border-style:dashed;border-width:2px}
+.mk.st.ig{border-color:var(--line-ig)}
+.mk.st.fill{background:currentColor}
+.mk.gate{left:18%;right:18%;top:28%;bottom:22%;border:2px solid var(--ink-hi);background:var(--paper-question);border-radius:10px}
+.mk.gate::before{content:"";position:absolute;left:12%;right:12%;top:18%;height:6px;background:var(--ink);opacity:.9;border-radius:3px}
+.mk.gate::after{content:"";position:absolute;left:12%;right:40%;top:38%;height:5px;background:var(--ink-muted);border-radius:3px}
+.mk.btn{height:14%;border-radius:999px;background:var(--ink);border:0}
+.mk.pop{left:12%;right:12%;top:14%;bottom:14%;border-radius:12px;box-shadow:var(--shadow-float)}
+.mk.pop::before{content:"";position:absolute;left:8%;top:10%;width:36%;bottom:10%;background:var(--paper-desk);border-radius:6px}
+.mk.pop::after{content:"";position:absolute;left:52%;right:8%;top:14%;height:6px;background:var(--ink);border-radius:3px;box-shadow:0 14px 0 -1px var(--ink-muted),0 26px 0 -1px var(--ink-muted),0 38px 0 -1px var(--paper-rule)}
+@keyframes blink{to{opacity:0}}
+
+/* 디자인 시스템 */
+.swatches{display:grid;gap:var(--space-2);grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.sw{display:grid;gap:6px;font-size:12.5px}
+.sw i{display:block;height:44px;border-radius:var(--radius-ui);border:1.5px solid var(--paper-rule)}
+.sw b{font-weight:650}
+.sw code{font-size:11px;color:var(--ink-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.type-scale{display:grid;gap:var(--space-2)}
+.type-scale div{display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap}
+.type-scale small{min-width:9ch;font-variant-numeric:tabular-nums}
+.motion{display:grid;gap:var(--space-3)}
+.motion .bar{display:grid;grid-template-columns:9ch 1fr;align-items:center;gap:var(--space-3);font-size:13px}
+.motion .track{height:10px;border-radius:999px;background:var(--paper-desk);position:relative;overflow:hidden}
+.motion .track i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ink);border-radius:999px}
+.motion.play .track i{width:100%}
+.motion .t1 i{transition:width var(--t-fast) var(--ease-settle)}
+.motion .t2 i{transition:width var(--t-state) var(--ease-settle)}
+.motion .t3 i{transition:width var(--t-move) var(--ease-glide)}
+.motion .t4 i{transition:width var(--t-grow) var(--ease-pop)}
+
+/* 컴포넌트 실물 */
+.demo{display:grid;gap:var(--space-4)}
+.demo-row{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
+.station{display:inline-flex;align-items:center;gap:10px;padding:8px 14px 8px 10px;border:1.5px solid var(--paper-rule);border-radius:var(--radius-pill);background:var(--paper-sheet);cursor:pointer;font:inherit;font-size:14px;font-weight:600;color:var(--ink);transition:border-color var(--t-state) var(--ease-settle),background var(--t-state) var(--ease-settle),transform var(--t-state) var(--ease-pop)}
+.station:hover{transform:translateY(-1px)}
+.station .mark{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:var(--paper-sheet);transition:all var(--t-state) var(--ease-settle)}
+.station.ig .mark{border-color:var(--line-ig)}
+.station[data-state="draft"] .mark{border-style:dashed;border-width:2px}
+.station[data-state="review"] .mark{box-shadow:0 0 0 3px var(--paper-question),0 0 0 4.5px var(--ink-hi)}
+.station[data-state="scheduled"] .mark{}
+.station[data-state="posted"] .mark{background:currentColor}
+.station.ig[data-state="posted"] .mark{background:var(--line-ig)}
+.station[data-state="failed"] .mark{border-color:var(--sig-bad);background:var(--paper-negative)}
+.station small{color:var(--ink-muted);font-weight:500}
+.signal{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600}
+.signal i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.signal.ok i{background:var(--sig-ok)}
+.signal.warn i{background:var(--sig-warn);animation:breathe var(--t-breathe) ease-in-out infinite}
+.signal.bad i{background:var(--sig-bad)}
+@keyframes breathe{50%{opacity:.35}}
+.linehead{display:inline-flex;align-items:center;gap:10px;padding:6px 14px 6px 8px;border-radius:var(--radius-pill);background:var(--paper-sheet);border:1.5px solid var(--paper-rule);font-weight:700;font-size:14px}
+.linehead i{width:22px;height:6px;border-radius:3px;display:inline-block}
+.linehead.ig i{background:var(--line-ig)}
+.linehead.th i{background:var(--line-th)}
+.linehead.ad i{background:var(--line-ad)}
+.linehead small{font-weight:500;color:var(--ink-muted)}
+.gatecard{max-width:420px;border:2px solid var(--ink-hi);background:var(--paper-question);border-radius:var(--radius-float);padding:var(--space-6);box-shadow:var(--shadow-float);display:grid;gap:var(--space-3);transform-origin:top center}
+.gatecard[hidden]{display:none}
+.gatecard.in{animation:pop var(--t-grow) var(--ease-pop)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.96)}}
+.gatecard .copy{display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap}
+.gatecard code{flex:1;min-width:0;padding:8px 12px;border-radius:var(--radius-ui);background:var(--paper-sheet);border:1.5px solid var(--paper-rule);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;overflow:auto;white-space:nowrap}
+.weekmap svg{width:100%;height:auto;display:block}
+.weekmap .rail{fill:none;stroke-width:5;stroke-linecap:round}
+.weekmap .rail.ig{stroke:var(--line-ig)}
+.weekmap .rail.th{stroke:var(--line-th)}
+.weekmap .st{stroke-width:3;fill:var(--paper-sheet)}
+.weekmap .st.ig{stroke:var(--line-ig)}
+.weekmap .st.th{stroke:var(--line-th)}
+.weekmap .st.posted.ig{fill:var(--line-ig)}
+.weekmap .st.posted.th{fill:var(--line-th)}
+.weekmap .st.draft{stroke-dasharray:3 3}
+.weekmap .st.review{stroke:var(--ink-hi)}
+.weekmap .st.failed{stroke:var(--sig-bad);fill:var(--paper-negative)}
+.weekmap .day{fill:var(--ink-muted);font-size:12px;font-weight:600}
+.weekmap .today{stroke:var(--ink-pencil);stroke-dasharray:3 4;stroke-width:1.5}
+.weekmap .nm{fill:var(--ink);font-size:11.5px;font-weight:600}
+.weekmap .ad{fill:none;stroke:var(--line-ad);stroke-width:2;stroke-dasharray:4 3}
+.weekmap .adt{fill:var(--line-ad);font-size:11px;font-weight:700}
+
+/* 결정 */
+.decisions{display:grid;gap:var(--space-3);margin-top:var(--space-6)}
+.q{display:grid;grid-template-columns:auto 1fr;gap:var(--space-3) var(--space-4);align-items:start}
+.q .n{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:2px}
+.q h4{margin-bottom:4px}
+.q .opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.q .opts span{padding:3px 10px;border-radius:var(--radius-pill);border:1.5px solid var(--paper-rule);font-size:13px;font-weight:600;background:var(--paper-sheet)}
+.q .opts span.default{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.q .opts span.default::before{content:"기본 · ";color:var(--ink-muted);font-weight:500}
+
+/* 피드백 칸 */
+.fb{margin-top:var(--space-6);border-top:1.5px dashed var(--paper-rule);padding-top:var(--space-3)}
+.fb summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--ink-muted);list-style:none;display:flex;align-items:center;gap:8px}
+.fb summary::before{content:"";width:8px;height:8px;border-radius:50%;border:2px solid var(--ink-pencil);transition:background var(--t-fast)}
+.fb.has summary::before{background:var(--ink-hi);border-color:var(--ink-hi)}
+.fb textarea{width:100%;min-height:88px;margin-top:var(--space-3);padding:10px 12px;border:1.5px solid var(--paper-rule);border-radius:var(--radius-ui);background:var(--paper-sheet);color:var(--ink);font:inherit;font-size:14.5px;line-height:1.5;resize:vertical}
+.fb textarea:focus{border-color:var(--ink);outline:none}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);padding:10px 16px;border-radius:var(--radius-pill);background:var(--ink);color:var(--on-ink);font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all var(--t-move) var(--ease-settle);z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.sources{margin-top:var(--space-12);padding-top:var(--space-6);border-top:1.5px solid var(--paper-rule);font-size:13.5px;color:var(--ink-muted)}
+.sources ul{margin:var(--space-2) 0 0;padding-left:1.1em;display:grid;gap:4px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media (max-width:640px){h2{font-size:22px}.lead{font-size:16.5px}.sheet{padding:var(--space-4)}.head .wrap{min-height:48px}}
+</style>
+</head>
+<body>
+
+<header class="head">
+ <div class="wrap">
+  <div class="brand">
+   <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M4 14h20" stroke="var(--line-ig)" stroke-width="3" stroke-linecap="round"/><path d="M4 20h20" stroke="var(--line-th)" stroke-width="3" stroke-linecap="round"/><circle cx="10" cy="14" r="3.2" fill="var(--paper-sheet)" stroke="var(--line-ig)" stroke-width="2.5"/><circle cx="18" cy="20" r="3.2" fill="var(--line-th)"/><circle cx="20" cy="8" r="3" fill="var(--ink-hi)"/></svg>
+   <span>홍보실 <small>기획안 · 1차</small></span>
+  </div>
+  <div class="head-actions">
+   <button class="btn ghost" type="button" id="fbReset">피드백 비우기</button>
+   <button class="btn ink" type="button" id="fbCopy">피드백 모아 복사</button>
+  </div>
+ </div>
+</header>
+
+<main class="wrap">
+
+<nav class="toc" aria-label="차례">
+ <a href="#c0"><b>0</b> 결론</a><a href="#c1"><b>1</b> 흐름</a><a href="#c2"><b>2</b> 운영 규칙</a><a href="#c3"><b>3</b> 구조</a><a href="#c4"><b>4</b> 단계</a><a href="#c5"><b>5</b> 화면</a><a href="#c6"><b>6</b> 디자인 시스템</a><a href="#c7"><b>7</b> 결정해 주세요</a>
+</nav>
+
+<section class="hero">
+ <h1>서비스 이름 하나 넣으면, Instagram과 Threads가 돌아간다.</h1>
+ <p class="lead" style="margin-top:12px">「홍보실」(임시 이름) — 펜시브 서비스의 Instagram·Threads 계정을 개설부터 게시·광고·감시까지 맡아 돌리는 운영 도구. 사람 손은 <b>세 번</b>(가입·연결·프로필)만 간다.</p>
+ <div class="meta"><span>주소 <b>instagram.pensieve.kr</b></span><span>저장소 <b>Pensieve-VR/instagram</b></span><span>배포 <b>Cloudflare Workers</b></span><span>작성 <b class="num">2026-11-02</b></span></div>
+</section>
+
+<!-- 0 결론 -->
+<section class="chapter" id="c0">
+ <div class="chapter-head"><span class="idx">0</span><h2>결론</h2></div>
+ <p class="lead">가입만 사람이 하고, 그 뒤는 전부 시스템이 한다. 공식 Meta API만 쓴다(비공식 자동화로 계정이 정지되는 길은 아예 막는다).</p>
+ <div class="cols">
+  <div class="sheet who" data-tag="시스템이">
+   <ul>
+    <li>서비스 이름 → 계정명 후보 5개 (빈 이름인지 확인)</li>
+    <li>소개문·프로필 이미지 초안 · 링크 정리</li>
+    <li>소재(제품 이미지·설명서·홈페이지)에서 게시물·캐러셀·릴스 생성</li>
+    <li>예약 → 게시 (Instagram 주 3~4 · Threads 하루 2~3)</li>
+    <li>성과 좋은 글 자동 광고 (Instagram 피드 + Threads 지면)</li>
+    <li>지표·댓글·토큰·실패 감시, 매일 아침 요약</li>
+   </ul>
+  </div>
+  <div class="sheet who gate" data-tag="사람이 · 게이트 3번">
+   <ul>
+    <li><b>① 가입</b> — 아이디·암호·전화 인증. 시스템이 화면을 열고 채울 값을 옆에 띄운다. 3분.</li>
+    <li><b>② 연결</b> — 프로 계정 전환 · Facebook 페이지 연결 · 앱 권한 허용. 클릭만.</li>
+    <li><b>③ 프로필</b> — 사진·소개 붙여넣기. API가 프로필 수정을 막아 둬서 사람이 넣는다. 1분.</li>
+    <li class="muted">광고는 첫 한 번 결제수단·사업자 인증(Meta 비즈니스)이 더 필요하다.</li>
+   </ul>
+  </div>
+  <div class="sheet who rule" data-tag="지키는 것">
+   <ul>
+    <li>공식 API 한도 안에서 — Instagram 하루 100건, Threads 하루 250건</li>
+    <li>미디어는 공개 URL(R2)로 — Meta가 가져가는 구조</li>
+    <li>처음 2주는 승인 후 게시, 그 뒤 자동 전환 제안</li>
+    <li>비밀값(Meta 앱 키·AI 키·입장 암호)은 Cloudflare 변수에 직접 등록</li>
+   </ul>
+  </div>
+ </div>
+ <p class="pin" style="margin-top:24px"><b>왜 가입을 자동화하지 않나.</b> Meta 약관이 자동 계정 생성을 금지하고, 가입 화면은 캡차·전화 인증으로 봇을 막는다. 우회해서 만든 계정은 생기자마자 정지된다. 가입 3분을 사람이 하고 나머지 100%를 시스템이 맡는 쪽이 결과가 좋다.</p>
+ <details class="fb" data-fb="0 결론"><summary>이 장 피드백</summary><textarea id="fb-c0" placeholder="고칠 것·빠진 것·반대"></textarea></details>
+</section>
+
+<!-- 1 흐름 -->
+<section class="chapter" id="c1">
+ <div class="chapter-head"><span class="idx">1</span><h2>흐름</h2></div>
+ <p class="lead">왼쪽은 한 번 하는 <b>개설</b>, 오른쪽은 계속 도는 <b>운영 루프</b>. 노란 사다리꼴이 사람 손이 가는 게이트다.</p>
+ <figure class="figure fc">
+  <svg id="flow" viewBox="0 0 820 900" width="820" height="900" role="img" aria-label="개설과 운영 루프 순서도"></svg>
+  <figcaption>
+   <span class="legend"><i class="term"></i>시작</span>
+   <span class="legend"><i class="io"></i>입력·출력</span>
+   <span class="legend"><i></i>처리</span>
+   <span class="legend"><i class="dia"></i>판단</span>
+   <span class="legend"><i class="man"></i>게이트 — 사람 손</span>
+   <span class="legend"><i class="pre"></i>정해진 절차</span>
+   <span class="legend"><i class="doc"></i>알림·문서</span>
+  </figcaption>
+ </figure>
+ <div class="cols">
+  <div class="sheet gate"><h4>게이트 ① 가입</h4><p>화면 한 장에 <b>열기</b> 버튼과 복사용 값(계정명·소개 한 줄)만 둔다. 암호·전화번호는 시스템이 받지도 저장하지도 않는다. 사용자가 「만들었어요」를 누르면 다음으로.</p></div>
+  <div class="sheet gate"><h4>게이트 ② 연결</h4><p>프로 계정 전환 → 페이지 연결 → Meta 로그인 창에서 권한 허용. 끝나면 토큰이 들어오고 노선 두 개(Instagram·Threads)가 화면에 그려진다.</p></div>
+  <div class="sheet gate"><h4>게이트 ③ 프로필</h4><p>생성된 소개문·프로필 이미지를 복사·다운로드해 앱에서 붙여넣는다. 요청하신 「계정 이미지는 넣어 달라고 요청」도 여기서 — 로고를 주면 1:1로 다듬어 준다.</p></div>
+ </div>
+ <details class="fb" data-fb="1 흐름"><summary>이 장 피드백</summary><textarea id="fb-c1" placeholder="순서·분기·게이트 위치"></textarea></details>
+</section>
+
+<!-- 2 운영 규칙 -->
+<section class="chapter" id="c2">
+ <div class="chapter-head"><span class="idx">2</span><h2>운영 규칙 (기본값)</h2></div>
+ <p class="lead">전부 화면에서 바꿀 수 있는 값이다. 처음 2주는 이 기본으로 돌리고 지표가 쌓이면 시스템이 조정안을 올린다.</p>
+ <div class="cols">
+  <div class="sheet"><h4>빈도</h4><dl class="kv"><dt>Instagram</dt><dd>주 3~4회 — 피드·캐러셀 2, 릴스 1~2</dd><dt>Threads</dt><dd>하루 2~3회 + 댓글 답글 — 인스타보다 많이, 자주</dd><dt>시간대</dt><dd>IG 12시·20시 / Threads 9·13·21시(KST) → 2주 뒤 성과로 재배치</dd></dl></div>
+  <div class="sheet"><h4>콘텐츠 각도 8개 순환</h4><div class="chips"><span class="chip">기능 하나</span><span class="chip">문제 → 해결</span><span class="chip">비교</span><span class="chip">비하인드</span><span class="chip">질문 던지기</span><span class="chip">수치</span><span class="chip">사용 장면</span><span class="chip">공지</span></div><p class="cap" style="margin-top:10px">같은 소재라도 각도를 바꿔 쓴다. Threads는 짧은 글 위주, Instagram은 카드 이미지 위주.</p></div>
+  <div class="sheet"><h4>검수</h4><dl class="kv"><dt>처음 2주</dt><dd>승인 후 게시 — 역 하나 눌러 승인·수정·건너뜀</dd><dt>그 뒤</dt><dd>승인률 90% 넘으면 「자동 게시 + 사후 보고」 전환을 제안</dd><dt>언제나</dt><dd>공지·가격처럼 틀리면 안 되는 글은 승인 고정</dd></dl></div>
+  <div class="sheet"><h4>광고</h4><dl class="kv"><dt>대상</dt><dd>게시 48시간 뒤 참여율 상위 20% 글을 자동 부스트</dd><dt>예산</dt><dd>일 상한 기본 1만 원, 월 상한 따로</dd><dt>지면</dt><dd>Threads 광고는 Instagram 피드와 묶어서만 집행된다(Meta 규칙). Threads 쪽 비중을 높이는 설정은 가능</dd></dl></div>
+  <div class="sheet"><h4>감시</h4><dl class="kv"><dt>즉시</dt><dd>게시 실패(3회 재시도 후) · 토큰 만료 D-7 · 팔로워 급변</dd><dt>매일 9시</dt><dd>요약 한 장 — 게시·도달·팔로워·광고비</dd><dt>댓글·멘션</dt><dd>수집 → 답글 초안 → 승인 후 게시</dd></dl></div>
+  <div class="sheet"><h4>소재</h4><dl class="kv"><dt>받는 것</dt><dd>제품 이미지 · 설명서(PDF·MD) · 홈페이지 링크</dd><dt>하는 것</dt><dd>링크를 읽어 핵심 문장·수치 추출 → 소재 창고에 쌓임</dd><dt>여러 서비스</dt><dd>될까?·브레인 스토밍·BM 각각 계정 묶음으로 — 한 화면에서 전환</dd></dl></div>
+ </div>
+ <details class="fb" data-fb="2 운영 규칙"><summary>이 장 피드백</summary><textarea id="fb-c2" placeholder="빈도·시간대·예산·검수 방식"></textarea></details>
+</section>
+
+<!-- 3 구조 -->
+<section class="chapter" id="c3">
+ <div class="chapter-head"><span class="idx">3</span><h2>구조</h2></div>
+ <p class="lead">Cloudflare Worker 하나가 화면·API·크론을 다 맡는다. Pages가 아니라 Workers인 이유는 <b>크론(예약 게시)과 큐</b>가 Workers에만 있어서다.</p>
+ <figure class="figure arch">
+  <svg viewBox="0 0 820 470" width="820" height="470" role="img" aria-label="시스템 구조도">
+   <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink-muted)"/></marker></defs>
+   <!-- zones -->
+   <rect class="zone" x="20" y="100" width="500" height="340"/><text class="z" x="504" y="124" text-anchor="end">CLOUDFLARE · instagram.pensieve.kr</text>
+   <rect class="zone" x="560" y="100" width="240" height="200"/><text class="z" x="576" y="124">META</text>
+   <!-- browser -->
+   <rect class="box" x="150" y="20" width="240" height="52"/><text class="t" x="270" y="42" text-anchor="middle">브라우저 — 사람 · 입장 암호</text><text class="s" x="270" y="60" text-anchor="middle">노선도 · 역 · 게이트</text>
+   <!-- worker -->
+   <rect class="box cf" x="40" y="140" width="460" height="64"/><text class="t" x="270" y="164" text-anchor="middle">Worker — 정적 화면 + API(Hono) + Cron + Queue 소비</text><text class="s" x="270" y="184" text-anchor="middle">15분마다 예약 확인 · 1시간마다 지표 · 매일 9시 요약</text>
+   <!-- storage -->
+   <rect class="box cf" x="40" y="240" width="140" height="56"/><text class="t" x="110" y="263" text-anchor="middle">D1</text><text class="s" x="110" y="281" text-anchor="middle">계정·역·일정·지표</text>
+   <rect class="box cf" x="200" y="240" width="140" height="56"/><text class="t" x="270" y="263" text-anchor="middle">R2</text><text class="s" x="270" y="281" text-anchor="middle">카드·영상 · 공개 URL</text>
+   <rect class="box cf" x="360" y="240" width="140" height="56"/><text class="t" x="430" y="263" text-anchor="middle">Queues</text><text class="s" x="430" y="281" text-anchor="middle">생성·게시·광고 작업</text>
+   <rect class="box cf" x="40" y="330" width="220" height="56"/><text class="t" x="150" y="353" text-anchor="middle">Browser Rendering</text><text class="s" x="150" y="371" text-anchor="middle">HTML 카드 템플릿 → PNG</text>
+   <rect class="box ai" x="280" y="330" width="220" height="56"/><text class="t" x="390" y="353" text-anchor="middle">Claude API</text><text class="s" x="390" y="371" text-anchor="middle">각도 선택 · 카피 · 답글 초안 · 요약</text>
+   <!-- optional render worker -->
+   <rect class="box opt" x="560" y="330" width="240" height="56"/><text class="t" x="680" y="353" text-anchor="middle">릴스 렌더 워커 (2차 · 선택)</text><text class="s" x="680" y="371" text-anchor="middle">리눅스 서버 ffmpeg / Containers / 외부 API</text>
+   <!-- meta -->
+   <rect class="box meta" x="580" y="140" width="200" height="40"/><text class="t" x="680" y="165" text-anchor="middle">Instagram Graph API</text>
+   <rect class="box meta" x="580" y="190" width="200" height="40"/><text class="t" x="680" y="215" text-anchor="middle">Threads API</text>
+   <rect class="box meta" x="580" y="240" width="200" height="40"/><text class="t" x="680" y="265" text-anchor="middle">Marketing API (광고 · 2차)</text>
+   <!-- edges -->
+   <path class="e" d="M270 72V140" marker-end="url(#ar)"/>
+   <path class="e" d="M110 204V240" marker-end="url(#ar)"/><path class="e" d="M270 204V240" marker-end="url(#ar)"/><path class="e" d="M430 204V240" marker-end="url(#ar)"/>
+   <path class="e" d="M150 296V330" marker-end="url(#ar)"/><path class="e" d="M390 296V330" marker-end="url(#ar)"/>
+   <path class="e" d="M500 160H580" marker-end="url(#ar)"/><path class="e" d="M500 172 L540 172 L540 210 L580 210" marker-end="url(#ar)"/><path class="e dash" d="M500 184 L532 184 L532 260 L580 260" marker-end="url(#ar2)"/>
+   <path class="e dash" d="M560 350 L540 350 L540 268 L340 268" marker-end="url(#ar2)"/>
+   <text class="s" x="400" y="318" text-anchor="middle">영상 → R2 (2차)</text>
+   <text class="s" x="680" y="294" text-anchor="middle">미디어는 R2 공개 URL에서 Meta가 가져간다</text>
+  </svg>
+  <figcaption><span class="legend"><i style="border-color:var(--ink-teal)"></i>Cloudflare</span><span class="legend"><i style="border-color:var(--ink-rose)"></i>Meta</span><span class="legend"><i style="border-color:var(--ink-violet)"></i>AI</span><span class="legend"><i style="border-style:dashed;border-color:var(--ink-muted)"></i>2차·선택</span></figcaption>
+ </figure>
+ <div class="cols two">
+  <div class="sheet"><h4>배포</h4><p>GitHub <code>main</code> 푸시 → Cloudflare Workers Builds 자동 배포 → <b>instagram.pensieve.kr</b>. 연결은 브레인 스토밍 때처럼 Claude가 Cloudflare 대시보드에서 잡는다(Chrome). 비밀값은 사용자가 Cloudflare 변수에 직접 등록.</p></div>
+  <div class="sheet"><h4>Meta 쪽 한 번 설정 (사람)</h4><p>개발자 앱 만들기 → Instagram·Threads 제품 추가 → 앱 역할에 본인 계정. <b>자체 계정만 운영하면 앱 심사 없이 개발 모드로 충분</b>하다. 광고(Marketing API)는 비즈니스 인증·접근 심사가 더 있어 2차로 뺐다.</p></div>
+  <div class="sheet"><h4>릴스 영상</h4><p>Workers에서는 영상 합성(ffmpeg)이 안 돈다. 1차는 이미지·캐러셀·Threads 글까지. 릴스는 2차에서 <b>리눅스 서버 렌더 워커</b>(곧 오는 서버) · Cloudflare Containers · 외부 렌더 API 중 하나 — 7장에서 골라 주세요.</p></div>
+  <div class="sheet"><h4>저장 모델</h4><dl class="kv"><dt>계정 묶음</dt><dd>서비스 하나 = Instagram + Threads 노선 둘</dd><dt>역</dt><dd>게시물 하나 — 소재·각도·카피·미디어·상태·지표</dd><dt>이벤트</dt><dd>게시·실패·승인·광고·알림의 시간순 기록</dd></dl></div>
+ </div>
+ <details class="fb" data-fb="3 구조"><summary>이 장 피드백</summary><textarea id="fb-c3" placeholder="스택·배포·저장 모델"></textarea></details>
+</section>
+
+<!-- 4 단계 -->
+<section class="chapter" id="c4">
+ <div class="chapter-head"><span class="idx">4</span><h2>단계</h2></div>
+ <p class="lead">피드백 받으면 <b>1차를 바로 구현</b>한다. 광고와 릴스는 Meta 심사·렌더 환경이 걸려 있어 2차.</p>
+ <div class="phases">
+  <div class="phase now"><div class="dot">1</div><div class="body"><h3>개설 + 글·이미지 운영</h3><p class="muted">피드백 직후 구현 — 이번 세션</p><div class="chips"><span class="chip">시작 화면</span><span class="chip">계정명 추천</span><span class="chip gate">게이트 ①②③</span><span class="chip">Meta 연결·토큰</span><span class="chip">소재 창고</span><span class="chip ig">이미지·캐러셀</span><span class="chip th">Threads 글</span><span class="chip">승인·예약·게시</span><span class="chip">노선도</span><span class="chip">지표·일일 요약</span><span class="chip">입장 암호</span><span class="chip">Cloudflare 배포</span></div></div></div>
+  <div class="phase"><div class="dot">2</div><div class="body"><h3>릴스 + 광고 + 답글</h3><p class="muted">Meta 비즈니스 인증 · 렌더 환경 확보 뒤</p><div class="chips"><span class="chip ig">릴스 생성</span><span class="chip ad">자동 부스트</span><span class="chip ad">예산 상한</span><span class="chip th">댓글·멘션 답글 초안</span><span class="chip th">Threads 키워드 반응</span></div></div></div>
+  <div class="phase"><div class="dot">3</div><div class="body"><h3>자율 운영 루프</h3><p class="muted">지표 4주 이상 쌓인 뒤</p><div class="chips"><span class="chip">성과 → 각도·시간대 재배분</span><span class="chip">자동 게시 전환</span><span class="chip">서비스 여러 개 동시 운영</span><span class="chip">주간 전략 제안</span></div></div></div>
+ </div>
+ <details class="fb" data-fb="4 단계"><summary>이 장 피드백</summary><textarea id="fb-c4" placeholder="순서를 바꿀 것·1차에 꼭 넣을 것"></textarea></details>
+</section>
+
+<!-- 5 화면 -->
+<section class="chapter" id="c5">
+ <div class="chapter-head"><span class="idx">5</span><h2>화면 다섯 장</h2></div>
+ <p class="lead">한 화면에 할 일 하나. 설명 문장 대신 전환으로 알린다 — 입력 하나 → 후보 → 게이트 → 노선이 그려짐 → 역을 누르면 상세.</p>
+ <div class="screens">
+  <div class="screen"><div class="frame"><div class="mk inp"></div></div><h4>① 시작</h4><p>입력칸 하나. 서비스 이름(또는 홈페이지 링크).</p></div>
+  <div class="screen"><div class="frame"><div class="mk card" style="top:12%"></div><div class="mk card pick" style="top:30%"></div><div class="mk card" style="top:48%"></div><div class="mk card" style="top:66%"></div></div><h4>② 이름 고르기</h4><p>후보 5개. 빈 이름만 선명, 쓰인 이름은 흐리게. 하나 누르면 게이트 ①.</p></div>
+  <div class="screen"><div class="frame"><div class="mk gate"></div><div class="mk btn" style="left:34%;right:34%;bottom:8%"></div></div><h4>③ 게이트</h4><p>열기 버튼 + 복사할 값. 사람이 하고 「했어요」. 세 게이트 모두 같은 꼴.</p></div>
+  <div class="screen"><div class="frame"><div class="mk line ig" style="top:36%"></div><div class="mk line th" style="top:64%"></div><div class="mk st ig fill" style="left:22%;top:36%;color:var(--line-ig)"></div><div class="mk st ig" style="left:48%;top:36%"></div><div class="mk st ig draft" style="left:74%;top:36%"></div><div class="mk st fill" style="left:16%;top:64%;color:var(--ink)"></div><div class="mk st fill" style="left:32%;top:64%;color:var(--ink)"></div><div class="mk st" style="left:50%;top:64%"></div><div class="mk st" style="left:66%;top:64%"></div><div class="mk st draft" style="left:84%;top:64%"></div></div><h4>④ 노선도 (홈)</h4><p>두 노선 위에 이번 주 역들. 채운 원은 게시됨, 빈 원은 예약, 점선은 초안. 신호는 모서리에만.</p></div>
+  <div class="screen"><div class="frame"><div class="mk pop"></div></div><h4>⑤ 역 상세</h4><p>미리보기 왼쪽, 카피·시각 오른쪽. 승인 · 고치기 · 건너뜀 셋만.</p></div>
+ </div>
+ <details class="fb" data-fb="5 화면"><summary>이 장 피드백</summary><textarea id="fb-c5" placeholder="화면 구성·빼거나 더할 화면"></textarea></details>
+</section>
+
+<!-- 6 디자인 시스템 -->
+<section class="chapter" id="c6">
+ <div class="chapter-head"><span class="idx">6</span><h2>디자인 시스템</h2></div>
+ <p class="lead">펜시브 페이퍼 디자인 시스템(될까?·브레인 스토밍·BM과 같은 토큰)을 그대로 쓴다. 이 도구가 더하는 것은 <b>노선 = 채널, 역 = 게시물, 게이트 = 사람 손</b>이라는 세 가지 뜻뿐이다.</p>
+ <div class="stack">
+  <div class="sheet">
+   <h3>색 — 종이와 먹</h3>
+   <div class="swatches">
+    <div class="sw"><i style="background:var(--paper-page)"></i><b>바탕 종이</b><code>--paper-page</code></div>
+    <div class="sw"><i style="background:var(--paper-sheet)"></i><b>낱장</b><code>--paper-sheet</code></div>
+    <div class="sw"><i style="background:var(--paper-desk)"></i><b>책상</b><code>--paper-desk</code></div>
+    <div class="sw"><i style="background:var(--paper-rule)"></i><b>괘선</b><code>--paper-rule</code></div>
+    <div class="sw"><i style="background:var(--ink)"></i><b>먹</b><code>--ink</code></div>
+    <div class="sw"><i style="background:var(--ink-muted)"></i><b>흐린 먹</b><code>--ink-muted</code></div>
+    <div class="sw"><i style="background:var(--ink-hi)"></i><b>여기(형광)</b><code>--ink-hi</code></div>
+   </div>
+   <h3 style="margin-top:24px">노선의 잉크 — 이 도구의 뜻</h3>
+   <div class="swatches">
+    <div class="sw"><i style="background:var(--line-ig)"></i><b>Instagram 노선</b><code>--line-ig</code></div>
+    <div class="sw"><i style="background:var(--line-th)"></i><b>Threads 노선</b><code>--line-th</code></div>
+    <div class="sw"><i style="background:var(--line-ad)"></i><b>광고</b><code>--line-ad</code></div>
+    <div class="sw"><i style="background:var(--line-gate)"></i><b>게이트 · 사람</b><code>--line-gate</code></div>
+    <div class="sw"><i style="background:var(--line-ai)"></i><b>AI가 보탬</b><code>--line-ai</code></div>
+    <div class="sw"><i style="background:var(--sig-ok)"></i><b>정상</b><code>--sig-ok</code></div>
+    <div class="sw"><i style="background:var(--sig-warn)"></i><b>주의</b><code>--sig-warn</code></div>
+    <div class="sw"><i style="background:var(--sig-bad)"></i><b>막힘</b><code>--sig-bad</code></div>
+   </div>
+   <p class="cap" style="margin-top:12px">Instagram은 브랜드 그라데이션을 베끼지 않고 먹과 어울리는 장미색 하나로, Threads는 먹 그대로. 다크 테마 값은 될까? 토큰과 동일.</p>
+  </div>
+  <div class="sheet">
+   <h3>글 — Pretendard Variable</h3>
+   <div class="type-scale">
+    <div><small>34 / 800</small><span style="font-size:34px;font-weight:800;letter-spacing:-.02em">첫 화면 한 줄</span></div>
+    <div><small>26 / 800</small><span style="font-size:26px;font-weight:800;letter-spacing:-.02em">화면 제목</span></div>
+    <div><small>20 / 700</small><span style="font-size:20px;font-weight:700">역 상세 제목</span></div>
+    <div><small>16 / 450</small><span>본문 — 카피 미리보기, 요약</span></div>
+    <div><small>14 / 600</small><span style="font-size:14px;font-weight:600">조작 · 역 이름 · 노선 이름</span></div>
+    <div><small>12.5 / 450</small><span class="cap">날짜 · 단위 · 눈금</span></div>
+   </div>
+   <p class="cap" style="margin-top:12px">숫자는 <span class="num">tabular-nums</span>. 노선도 안 글자는 역 이름과 시각만, 그 외 설명 문장은 두지 않는다.</p>
+  </div>
+  <div class="sheet">
+   <h3>움직임 — 말 대신 전환</h3>
+   <div class="motion" id="motion">
+    <div class="bar t1"><small>180ms 즉답</small><div class="track"><i></i></div></div>
+    <div class="bar t2"><small>240ms 상태</small><div class="track"><i></i></div></div>
+    <div class="bar t3"><small>360ms 이동</small><div class="track"><i></i></div></div>
+    <div class="bar t4"><small>560ms 자람</small><div class="track"><i></i></div></div>
+   </div>
+   <div class="demo-row" style="margin-top:12px"><button class="btn" type="button" id="motionPlay">다시 재생</button><span class="cap">호버·누름 180 · 역 상태 바뀜 240 · 노선 위 이동 360 · 게이트·역이 생길 때 560(튕김)</span></div>
+   <p class="cap" style="margin-top:12px">원칙 셋 — 지금 필요 없는 정보는 그리지 않는다 · 상태 변화는 글 대신 모양·색의 전환으로 · 사람이 필요한 순간에만 화면이 멈추고 게이트 하나가 뜬다.</p>
+  </div>
+  <div class="sheet">
+   <h3>컴포넌트 실물</h3>
+   <div class="demo">
+    <div><h4>노선 머리</h4><div class="demo-row"><span class="linehead ig"><i></i>Instagram <small>@delka.kr</small></span><span class="linehead th"><i></i>Threads <small>@delka.kr</small></span><span class="linehead ad"><i></i>광고 <small>일 1만 원</small></span></div></div>
+    <div><h4>역 — 눌러서 상태 바꿔 보기</h4><div class="demo-row">
+     <button class="station ig" type="button" data-state="draft"><span class="mark"></span>기능 하나 · 월 12:00 <small>초안</small></button>
+     <button class="station ig" type="button" data-state="review"><span class="mark"></span>비교 카드 · 수 20:00 <small>승인 대기</small></button>
+     <button class="station" type="button" data-state="scheduled"><span class="mark"></span>질문 한 줄 · 화 09:00 <small>예약</small></button>
+     <button class="station" type="button" data-state="posted"><span class="mark"></span>수치 · 월 13:00 <small>게시됨</small></button>
+     <button class="station" type="button" data-state="failed"><span class="mark"></span>공지 · 화 21:00 <small>실패</small></button>
+    </div><p class="cap" style="margin-top:8px">초안 점선 → 승인 대기 형광 고리 → 예약 빈 원 → 게시됨 채운 원. 실패만 붉게.</p></div>
+    <div><h4>신호</h4><div class="demo-row"><span class="signal ok"><i></i>두 노선 정상</span><span class="signal warn"><i></i>토큰 만료 D-6</span><span class="signal bad"><i></i>게시 실패 1</span></div></div>
+    <div><h4>게이트 카드</h4><div class="demo-row"><button class="btn hi" type="button" id="gateOpen">게이트 열어 보기</button></div>
+     <div class="gatecard" id="gatecard" hidden>
+      <div><span class="chip gate">게이트 ① · 사람 3분</span></div>
+      <h3 style="margin:0">Instagram 계정을 만들어 주세요</h3>
+      <p class="muted" style="font-size:14px">암호와 전화번호는 Instagram에만 입력합니다. 이 화면은 받지 않습니다.</p>
+      <div class="copy"><code>delka.kr</code><button class="btn" type="button" data-copy="delka.kr">복사</button></div>
+      <div class="copy"><code>아이디어, 될까? 묻고 잇고 그려 봅니다.</code><button class="btn" type="button" data-copy="아이디어, 될까? 묻고 잇고 그려 봅니다.">복사</button></div>
+      <div class="demo-row"><span class="btn ink">Instagram 가입 열기</span><button class="btn" type="button" id="gateDone">만들었어요</button></div>
+     </div>
+    </div>
+    <div><h4>주간 노선도</h4>
+     <div class="weekmap">
+      <svg viewBox="0 0 760 170" role="img" aria-label="이번 주 노선도 예시">
+       <g class="day"><text x="70" y="18" text-anchor="middle">월</text><text x="170" y="18" text-anchor="middle">화</text><text x="270" y="18" text-anchor="middle">수</text><text x="370" y="18" text-anchor="middle">목</text><text x="470" y="18" text-anchor="middle">금</text><text x="570" y="18" text-anchor="middle">토</text><text x="670" y="18" text-anchor="middle">일</text></g>
+       <line class="today" x1="270" y1="28" x2="270" y2="160"/>
+       <path class="rail ig" d="M30 60H730"/>
+       <path class="rail th" d="M30 120H730"/>
+       <circle class="st ig posted" cx="70" cy="60" r="9"/><text class="nm" x="70" y="44" text-anchor="middle">기능 하나</text>
+       <circle class="st ig review" cx="270" cy="60" r="9"/><text class="nm" x="270" y="44" text-anchor="middle">비교 카드</text>
+       <circle class="st ig" cx="470" cy="60" r="9"/><text class="nm" x="470" y="44" text-anchor="middle">사용 장면</text>
+       <circle class="st ig draft" cx="620" cy="60" r="9"/><text class="nm" x="620" y="44" text-anchor="middle">릴스 · 초안</text>
+       <path class="ad" d="M70 72 Q70 92 90 92 H150" /><text class="adt" x="100" y="106">부스트 중 · 3,200원</text>
+       <circle class="st th posted" cx="50" cy="120" r="7"/><circle class="st th posted" cx="90" cy="120" r="7"/><circle class="st th posted" cx="150" cy="120" r="7"/><circle class="st th failed" cx="190" cy="120" r="7"/>
+       <circle class="st th posted" cx="250" cy="120" r="7"/><circle class="st th" cx="290" cy="120" r="7"/><circle class="st th" cx="350" cy="120" r="7"/><circle class="st th" cx="390" cy="120" r="7"/><circle class="st th" cx="450" cy="120" r="7"/><circle class="st th" cx="490" cy="120" r="7"/><circle class="st th draft" cx="550" cy="120" r="7"/><circle class="st th draft" cx="590" cy="120" r="7"/><circle class="st th draft" cx="650" cy="120" r="7"/><circle class="st th draft" cx="690" cy="120" r="7"/>
+       <text class="nm" x="190" y="148" text-anchor="middle" style="fill:var(--sig-bad)">공지 · 재시도</text>
+      </svg>
+     </div>
+     <p class="cap" style="margin-top:8px">위 Instagram, 아래 Threads. 점선 세로선이 지금. 역 이름은 Instagram 쪽만, Threads는 많아서 모양으로만 — 누르면 이름이 뜬다.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+ <details class="fb" data-fb="6 디자인 시스템"><summary>이 장 피드백</summary><textarea id="fb-c6" placeholder="색·글·움직임·컴포넌트"></textarea></details>
+</section>
+
+<!-- 7 결정 -->
+<section class="chapter" id="c7">
+ <div class="chapter-head"><span class="idx">7</span><h2>결정해 주세요</h2></div>
+ <p class="lead">답이 없으면 <b>기본</b>으로 간다. 피드백은 각 장 칸에 적고, 위의 「피드백 모아 복사」로 복사해 채팅에 붙여 주면 된다.</p>
+ <div class="decisions">
+  <div class="sheet q"><div class="n">1</div><div><h4>이름</h4><p class="muted">주소는 instagram.pensieve.kr 그대로. 화면에 보일 이름.</p><div class="opts"><span class="default">홍보실</span><span>확성기</span><span>피드</span><span>다른 것</span></div></div></div>
+  <div class="sheet q"><div class="n">2</div><div><h4>디자인</h4><p class="muted">펜시브 페이퍼를 그대로 쓸지, 이 도구만 다른 룩으로 갈지.</p><div class="opts"><span class="default">페이퍼 계승</span><span>별도 룩</span></div></div></div>
+  <div class="sheet q"><div class="n">3</div><div><h4>검수</h4><div class="opts"><span class="default">2주 승인 → 자동 전환 제안</span><span>처음부터 자동</span><span>계속 승인</span></div></div></div>
+  <div class="sheet q"><div class="n">4</div><div><h4>릴스 렌더 (2차)</h4><p class="muted">Workers 밖에서 영상을 만들 자리.</p><div class="opts"><span class="default">리눅스 서버 워커</span><span>Cloudflare Containers</span><span>외부 렌더 API</span></div></div></div>
+  <div class="sheet q"><div class="n">5</div><div><h4>광고</h4><p class="muted">2차로 미루는 것과 일 상한 기본값.</p><div class="opts"><span class="default">2차 · 일 1만 원</span><span>1차에 넣기</span><span>상한 다르게</span></div></div></div>
+  <div class="sheet q"><div class="n">6</div><div><h4>알림</h4><p class="muted">실패·만료·일일 요약을 어디로 보낼지.</p><div class="opts"><span class="default">화면 안에서만</span><span>디스코드</span><span>메일</span><span>관제탑</span></div></div></div>
+  <div class="sheet q"><div class="n">7</div><div><h4>첫 대상</h4><p class="muted">첫 계정 묶음과 소재 출처.</p><div class="opts"><span class="default">될까? · delka.pensieve.kr</span><span>펜시브 회사 계정</span><span>다른 서비스</span></div></div></div>
+  <div class="sheet q"><div class="n">8</div><div><h4>Cloudflare 연결</h4><div class="opts"><span class="default">대시보드에서 Claude가(Chrome)</span><span>Cloudflare 커넥터 연결</span><span>API 토큰 전달</span></div></div></div>
+ </div>
+ <details class="fb" data-fb="7 결정"><summary>이 장 피드백 · 번호로 답해도 됨</summary><textarea id="fb-c7" placeholder="예) 1 홍보실 / 3 처음부터 자동 / 6 디스코드"></textarea></details>
+</section>
+
+<footer class="sources">
+ <b>근거</b>
+ <ul>
+  <li><a href="https://developers.facebook.com/docs/instagram-platform/content-publishing" target="_blank" rel="noopener">Instagram Platform — Content Publishing</a> (이미지·캐러셀·릴스·스토리, 하루 100건, 공개 URL, 전문가 계정)</li>
+  <li><a href="https://developers.facebook.com/docs/threads/overview" target="_blank" rel="noopener">Threads API — Overview</a> (글·이미지·영상·캐러셀, 하루 250건, 답글 1,000건)</li>
+  <li><a href="https://www.socialmediatoday.com/news/meta-adds-threads-ads-to-marketing-api/748532" target="_blank" rel="noopener">Meta adds Threads ads to Marketing API (2025-05)</a> · <a href="https://developers.facebook.com/blog/post/2026/03/25/marketing-api-latest-updates-for-ads-on-threads" target="_blank" rel="noopener">2026-03 업데이트</a> (Threads 지면은 Instagram 피드와 묶임, 답글 관리 권한)</li>
+  <li><a href="https://developers.cloudflare.com/workers/prompts/pages-to-workers.txt" target="_blank" rel="noopener">Cloudflare — Pages → Workers 정적 자산 이전 안내</a></li>
+ </ul>
+</footer>
+
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+ /* ---------- 순서도 ---------- */
+ var svg=document.getElementById('flow'); var NS='http://www.w3.org/2000/svg';
+ function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+ var W=250, GAP=34, LEFT=40, TOP=46, COLGAP=120;
+ var cols=[
+  {title:'개설 — 한 번', nodes:[
+   {id:'A1',type:'term',lab:'시작'},
+   {id:'A2',type:'io',lab:'서비스 이름 입력'},
+   {id:'A3',type:'proc',lab:'계정명 후보 5개 생성\n빈 이름인지 확인',ai:1},
+   {id:'A4',type:'dec',lab:'마음에 드는\n이름?'},
+   {id:'A5',type:'man',lab:'게이트 ① 가입\n아이디·암호·전화 인증 · 3분'},
+   {id:'A6',type:'man',lab:'게이트 ② 연결\n프로 계정 · 페이지 · 권한 허용'},
+   {id:'A7',type:'proc',lab:'토큰 저장\nInstagram·Threads 노선 생성'},
+   {id:'A8',type:'proc',lab:'소개문·프로필 이미지\n초안 생성',ai:1},
+   {id:'A9',type:'man',lab:'게이트 ③ 프로필\n사진·소개 붙여넣기 · 1분'}
+  ]},
+  {title:'운영 — 계속', nodes:[
+   {id:'B1',type:'io',lab:'소재 입력\n제품 이미지 · 설명서 · 홈페이지'},
+   {id:'B2',type:'pre',lab:'콘텐츠 생성\n각도 → 카피 → 카드 → 예약',ai:1},
+   {id:'B3',type:'dec',lab:'승인 모드?'},
+   {id:'B4',type:'man',lab:'승인 · 고치기 · 건너뜀'},
+   {id:'B5',type:'proc',lab:'예약 시각에 게시\nR2 URL → Meta API'},
+   {id:'B6',type:'dec',lab:'성과 상위\n20%?'},
+   {id:'B7',type:'proc',lab:'광고 부스트\nMarketing API · 2차'},
+   {id:'B8',type:'proc',lab:'감시\n지표 · 댓글 · 토큰 · 실패'},
+   {id:'B9',type:'doc',lab:'매일 9시 요약 알림'}
+  ]}
+ ];
+ var byId={};
+ cols.forEach(function(c,ci){ var y=TOP; c.nodes.forEach(function(n){ var lines=n.lab.split('\n'); n.h= n.type==='dec'?76 : (lines.length>1?60:48); n.cx=LEFT+ci*(W+COLGAP)+W/2; n.cy=y+n.h/2; n.x=n.cx-W/2; n.y=y; y+=n.h+GAP; byId[n.id]=n; }); });
+ var defs=el('defs',{}); var m=el('marker',{id:'fa',viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'}); var mp=el('path',{d:'M0 0L10 5L0 10z'}); mp.style.fill='var(--ink)'; m.appendChild(mp); defs.appendChild(m);
+ var m2=el('marker',{id:'fb',viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'}); var mp2=el('path',{d:'M0 0L10 5L0 10z'}); mp2.style.fill='var(--ink-muted)'; m2.appendChild(mp2); defs.appendChild(m2); svg.appendChild(defs);
+ cols.forEach(function(c,ci){ var t=el('text',{x:LEFT+ci*(W+COLGAP),y:24,'class':'col-title'}); t.textContent=c.title; svg.appendChild(t); });
+ function shape(n){
+  var g=el('g',{}); var cls='shape'+(n.type==='man'?' gate':'')+(n.ai?' ai':''); var s;
+  var x=n.x,y=n.y,w=W,h=n.h;
+  if(n.type==='term'){s=el('rect',{x:x+60,y:y,width:w-120,height:h,rx:h/2});}
+  else if(n.type==='proc'){s=el('rect',{x:x,y:y,width:w,height:h,rx:4});}
+  else if(n.type==='io'){var k=14;s=el('path',{d:'M'+(x+k)+' '+y+'H'+(x+w)+'L'+(x+w-k)+' '+(y+h)+'H'+x+'Z'});}
+  else if(n.type==='man'){var k2=18;s=el('path',{d:'M'+x+' '+y+'H'+(x+w)+'L'+(x+w-k2)+' '+(y+h)+'H'+(x+k2)+'Z'});}
+  else if(n.type==='dec'){s=el('path',{d:'M'+n.cx+' '+y+'L'+(x+w)+' '+n.cy+'L'+n.cx+' '+(y+h)+'L'+x+' '+n.cy+'Z'});}
+  else if(n.type==='pre'){s=el('rect',{x:x,y:y,width:w,height:h,rx:4});}
+  else if(n.type==='doc'){s=el('path',{d:'M'+x+' '+y+'H'+(x+w)+'V'+(y+h-8)+'Q'+(x+w*0.75)+' '+(y+h-20)+' '+(x+w/2)+' '+(y+h-8)+'T'+x+' '+(y+h-8)+'Z'});}
+  s.setAttribute('class',cls); g.appendChild(s);
+  if(n.type==='pre'){ [x+10,x+w-10].forEach(function(lx){var l=el('line',{x1:lx,y1:y,x2:lx,y2:y+h}); l.setAttribute('class','shape'+(n.ai?' ai':'')); g.appendChild(l);}); }
+  var lines=n.lab.split('\n'); var t=el('text',{x:n.cx,y:n.cy,'text-anchor':'middle','dominant-baseline':'middle','class':'label'});
+  var lh=16; lines.forEach(function(ln,i){var ts=el('tspan',{x:n.cx,dy:i===0?(-(lines.length-1)*lh/2):lh}); if(i>0&&n.type!=='dec'){ts.setAttribute('class','small');} ts.textContent=ln; t.appendChild(ts);});
+  g.appendChild(t); return g;
+ }
+ cols.forEach(function(c){ c.nodes.forEach(function(n){ svg.appendChild(shape(n)); }); });
+ // default edges (straight down), skipping custom-handled ones
+ var skipDefault={'A9':1,'B9':1};
+ var labelAfter={'A4':'예','B3':'예','B6':'예'};
+ cols.forEach(function(c){ c.nodes.forEach(function(n,i){ var nx=c.nodes[i+1]; if(!nx||skipDefault[n.id])return; var p=el('path',{d:'M'+n.cx+' '+(n.y+n.h)+'V'+nx.y,'class':'edge','marker-end':'url(#fa)'}); svg.appendChild(p); if(labelAfter[n.id]){var t=el('text',{x:n.cx+8,y:n.y+n.h+14,'class':'edge-label'}); t.textContent=labelAfter[n.id]; svg.appendChild(t);} }); });
+ // custom edges: exit/enter sides, x = vertical run
+ function pt(n,side){ if(side==='right')return [n.x+W,n.cy]; if(side==='left')return [n.x,n.cy]; if(side==='top')return [n.cx,n.y]; return [n.cx,n.y+n.h]; }
+ function edge(from,to,exit,enter,x,label,no){ var a=byId[from],b=byId[to]; var p1=pt(a,exit),p2=pt(b,enter); var d='M'+p1[0]+' '+p1[1]+'H'+x+'V'+p2[1]+'H'+p2[0]; var p=el('path',{d:d,'class':'edge'+(no?' no':''),'marker-end':no?'url(#fb)':'url(#fa)'}); svg.appendChild(p); if(label){var t=el('text',{x:x+6,y:(p1[1]+p2[1])/2+4,'class':'edge-label'}); t.textContent=label; svg.appendChild(t);} }
+ var A=byId.A1, B=byId.B1;
+ edge('A4','A3','right','right',A.x+W+28,'아니오',true);      // 다시 고르기
+ edge('B3','B5','right','right',B.x+W+28,'아니오',true);      // 승인 없이
+ edge('B6','B8','right','right',B.x+W+28,'아니오',true);      // 광고 없이
+ edge('B8','B2','left','left',B.x-26,'다음 글',false);          // 루프
+ edge('A9','B1','right','left',A.x+W+COLGAP/2,'',false);     // 개설 → 운영
+ // viewBox height fit
+ var maxY=0; cols.forEach(function(c){c.nodes.forEach(function(n){maxY=Math.max(maxY,n.y+n.h);});});
+ svg.setAttribute('viewBox','0 0 820 '+(maxY+30)); svg.setAttribute('height',maxY+30);
+
+ /* ---------- 역 상태 데모 ---------- */
+ var order=['draft','review','scheduled','posted','failed'], names={draft:'초안',review:'승인 대기',scheduled:'예약',posted:'게시됨',failed:'실패'};
+ document.querySelectorAll('.station').forEach(function(b){ b.addEventListener('click',function(){ var s=order[(order.indexOf(b.dataset.state)+1)%order.length]; b.dataset.state=s; b.querySelector('small').textContent=names[s]; }); });
+
+ /* ---------- 게이트 데모 ---------- */
+ var gate=document.getElementById('gatecard');
+ document.getElementById('gateOpen').addEventListener('click',function(){ gate.hidden=false; gate.classList.remove('in'); void gate.offsetWidth; gate.classList.add('in'); });
+ document.getElementById('gateDone').addEventListener('click',function(){ gate.hidden=true; toast('노선이 그려집니다 — 다음: 게이트 ②'); });
+ document.querySelectorAll('[data-copy]').forEach(function(b){ b.addEventListener('click',function(){ copyText(b.dataset.copy); }); });
+
+ /* ---------- 움직임 데모 ---------- */
+ var mo=document.getElementById('motion'); function play(){ mo.classList.remove('play'); void mo.offsetWidth; requestAnimationFrame(function(){mo.classList.add('play');}); }
+ document.getElementById('motionPlay').addEventListener('click',play); setTimeout(play,300);
+
+ /* ---------- 피드백 저장·복사 ---------- */
+ var KEY='hongbo-plan-fb:';
+ var boxes=document.querySelectorAll('.fb textarea');
+ boxes.forEach(function(t){ var d=t.closest('.fb'); try{ var v=localStorage.getItem(KEY+t.id); if(v){t.value=v; d.classList.add('has'); d.open=true;} }catch(e){} t.addEventListener('input',function(){ try{localStorage.setItem(KEY+t.id,t.value);}catch(e){} d.classList.toggle('has',t.value.trim().length>0); }); });
+ document.getElementById('fbCopy').addEventListener('click',function(){ var out=[]; boxes.forEach(function(t){ if(t.value.trim()){ out.push('## '+t.closest('.fb').dataset.fb+'\n'+t.value.trim()); } }); if(!out.length){toast('적힌 피드백이 없습니다'); return;} copyText('# 홍보실 기획안 피드백\n\n'+out.join('\n\n')); });
+ document.getElementById('fbReset').addEventListener('click',function(){ boxes.forEach(function(t){ t.value=''; t.closest('.fb').classList.remove('has'); try{localStorage.removeItem(KEY+t.id);}catch(e){} }); toast('비웠습니다'); });
+ function copyText(s){ var done=function(){toast('복사했습니다');}; var fail=function(){ var ta=document.createElement('textarea'); ta.value=s; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); done();}catch(e){toast('복사가 막혔습니다 — 직접 선택해 주세요');} document.body.removeChild(ta); }; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(s).then(done,fail);} else fail(); }
+ var toastEl=document.getElementById('toast'), tt; function toast(s){ toastEl.textContent=s; toastEl.classList.add('show'); clearTimeout(tt); tt=setTimeout(function(){toastEl.classList.remove('show');},1800); }
+})();
+</script>
+</body>
+</html>
