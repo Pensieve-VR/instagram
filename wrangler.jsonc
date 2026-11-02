@@ -25,7 +25,7 @@
   },
   // 저장소 — 표는 첫 요청 때 저절로 만든다(lib/db.js)
   "d1_databases": [
-    { "binding": "DB", "database_name": "instagram", "database_id": "REPLACE_WITH_D1_ID" }
+    { "binding": "DB", "database_name": "instagram", "database_id": "9f6280ac-d612-43ce-9c6a-854161895b5d" }
   ],
   // 카드 이미지·올린 소재 — /media/<key> 로 공개 서빙(Meta가 가져간다)
   "r2_buckets": [
