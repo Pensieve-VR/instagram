@@ -3,7 +3,8 @@
 // 2) 빌드 변수(설정 › 빌드 › 변수 및 암호)에 넣은 비밀을 런타임 비밀로 옮긴다 — 값은 표준 입력으로만 넘기고 어디에도 찍지 않는다.
 import { spawnSync } from 'node:child_process';
 
-const SECRETS = ['PASSWORDS', 'ANTHROPIC_API_KEY', 'SESSION_SECRET', 'IG_APP_ID', 'IG_APP_SECRET', 'THREADS_APP_ID', 'THREADS_APP_SECRET'];
+// 앱 ID·구성 ID 는 비밀이 아니라 wrangler.jsonc vars 에 둔다 — 같은 이름을 비밀로 올리면 배포가 충돌한다
+const SECRETS = ['PASSWORDS', 'ANTHROPIC_API_KEY', 'SESSION_SECRET', 'IG_APP_SECRET', 'THREADS_APP_SECRET'];
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 const deploy = spawnSync(npx, ['wrangler', 'deploy'], { stdio: 'inherit' });

@@ -276,10 +276,11 @@ function viewGateConnect(svc) {
         el('p', {}, '그동안 소재 넣기·운영 규칙 정하기는 먼저 해 둘 수 있습니다.'),
         el('details', { class: 'admin' }, el('summary', {}, '관리자용 — 출입증 만드는 법'),
           el('ol', {},
-            el('li', {}, 'developers.facebook.com › 앱 만들기 → Instagram(Instagram 로그인) · Threads API 추가'),
-            el('li', {}, '되돌아올 주소 두 개 등록 — ', el('code', {}, `${st.caps.origin}/api/oauth/ig/callback`), ' · ', el('code', {}, `${st.caps.origin}/api/oauth/th/callback`)),
-            el('li', {}, '앱 ID·시크릿을 Cloudflare › pensieve-instagram › 빌드 › 변수 및 암호에 비밀로 — IG_APP_ID · IG_APP_SECRET · THREADS_APP_ID · THREADS_APP_SECRET'),
-            el('li', {}, '앱 역할 › 테스터에 연결할 Instagram 계정 추가(심사 전까지)'))),
+            el('li', {}, 'developers.facebook.com › 앱 만들기 → 「Instagram에서 메시지 및 콘텐츠 관리」 · 「Threads API 액세스」'),
+            el('li', {}, 'Instagram 은 Unified login — 앱을 비즈니스 포트폴리오에 연결 → 구성 만들기(되돌아올 주소 ', el('code', {}, `${st.caps.origin}/api/oauth/ig/callback`), ')'),
+            el('li', {}, 'Threads 설정 › 되돌아올 주소 ', el('code', {}, `${st.caps.origin}/api/oauth/th/callback`)),
+            el('li', {}, '시크릿 두 개를 Cloudflare › pensieve-instagram › 빌드 › 변수 및 암호에 비밀로 — IG_APP_SECRET · THREADS_APP_SECRET'),
+            el('li', {}, '앱 역할에 운영 계정을 Instagram·Threads 테스터로(심사 전까지)'))),
       ],
       acts: [browse],
     });
@@ -302,7 +303,7 @@ function viewGateConnect(svc) {
   return gateCard({
     n: 3, title: '계정을 홍보실에 연결해 주세요', mins: '1분',
     children: [
-      el('p', {}, '누르면 Meta 로그인 창이 열립니다. 허용하면 끝 — 열쇠는 홍보실이 알아서 갱신합니다.'),
+      el('p', {}, '누르면 Meta 로그인 창이 열립니다. Instagram 은 「Instagram으로 로그인」을 고르고 이 계정을 체크하면 끝입니다.'),
       el('div', { class: 'links' }, row('ig'), row('th')),
       el('p', { class: 'muted', style: { fontSize: '13px' } }, '연결이 안 되면: Instagram 이 프로페셔널 계정인지, 관리자가 이 계정을 Meta 앱 테스터로 넣었는지 확인해 주세요.'),
     ],

@@ -71,12 +71,33 @@ test('서버는 Instagram 프로필을 직접 긁지 않는다(약관) — handl
 });
 
 test('authUrl · MetaError · stripCode', () => {
-  const u = new URL(authUrl({ IG_APP_ID: '123', IG_APP_SECRET: 'x' }, 'ig', 'https://h/cb', 'st'));
-  assert.equal(u.host, 'www.instagram.com'); assert.equal(u.searchParams.get('client_id'), '123'); assert.equal(u.searchParams.get('state'), 'st');
-  assert.match(u.searchParams.get('scope'), /instagram_business_content_publish/);
+  // Instagram — Unified login: Facebook 대화상자 + config_id, scope 는 보내지 않는다
+  const igEnv = { IG_APP_ID: '123', IG_APP_SECRET: 'x', IG_CONFIG_ID: '777' };
+  const u = new URL(authUrl(igEnv, 'ig', 'https://h/cb', 'st'));
+  assert.equal(u.host, 'www.facebook.com'); assert.equal(u.pathname, '/dialog/oauth');
+  assert.equal(u.searchParams.get('client_id'), '123'); assert.equal(u.searchParams.get('config_id'), '777'); assert.equal(u.searchParams.get('state'), 'st');
+  assert.equal(u.searchParams.get('scope'), null);
+  assert.equal(meta.appReady(igEnv, 'ig'), true);
+  assert.equal(meta.appReady({ IG_APP_ID: '123', IG_APP_SECRET: 'x' }, 'ig'), false, '구성 ID 없으면 준비 안 됨');
+  assert.equal(meta.base({}, 'ig'), 'https://graph.facebook.com/v26.0');
+  assert.equal(meta.refreshable('ig'), false); assert.equal(meta.refreshable('th'), true);
+  assert.deepEqual(meta.pickAccount([{ id: '1', username: 'a' }, { id: '2', username: 'Descartes_Works' }], 'descartes_works'), { id: '2', username: 'Descartes_Works' });
+  assert.deepEqual(meta.pickAccount([{ id: '1', username: 'a' }], 'zzz'), { id: '1', username: 'a' });
+  assert.equal(meta.pickAccount([], 'zzz'), null);
   const t = new URL(authUrl({ THREADS_APP_ID: '9', THREADS_APP_SECRET: 'x', THREADS_SCOPES: 'threads_basic' }, 'th', 'https://h/cb', 'st'));
   assert.equal(t.searchParams.get('scope'), 'threads_basic');
   const e = new MetaError('Error validating access token', { code: 190, type: 'OAuthException' });
   assert.equal(e.tokenProblem, true); assert.equal(new MetaError('x', { code: 4 }).rateLimited, true); assert.equal(new MetaError('x', { code: 100 }).tokenProblem, false);
   assert.equal(stripCode('abc#_'), 'abc'); assert.equal(stripCode('abc'), 'abc');
+});
+
+test('signed_request — 앱 시크릿 서명이 맞을 때만 읽는다', async () => {
+  const secret = 'app-secret';
+  const b64u = (bytes) => Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const body = b64u(new TextEncoder().encode(JSON.stringify({ algorithm: 'HMAC-SHA256', user_id: '42' })));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = b64u(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))));
+  assert.equal((await meta.parseSignedRequest(secret, `${sig}.${body}`)).user_id, '42');
+  assert.equal(await meta.parseSignedRequest('other', `${sig}.${body}`), null);
+  assert.equal(await meta.parseSignedRequest(secret, 'garbage'), null);
 });

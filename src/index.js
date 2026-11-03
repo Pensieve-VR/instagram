@@ -74,6 +74,12 @@ async function api(request, env, ctx, url) {
   }
   // OAuth 되돌아오기 — 브라우저 리다이렉트라 Authorization 이 없다. state 서명으로 공간·서비스를 안다.
   if (seg[0] === 'oauth' && seg[2] === 'callback' && m === 'GET') return oauthCallback(request, env, url, seg[1], origin);
+  // Meta 가 부르는 앱 해제·데이터 삭제 콜백 — signed_request 서명으로 확인한다
+  if (seg[0] === 'meta' && meta.KINDS[seg[1]] && (seg[2] === 'uninstall' || seg[2] === 'delete') && m === 'POST') return metaCallback(request, env, seg[1], seg[2], origin);
+  if (seg[0] === 'meta' && seg[1] === 'deletion' && m === 'GET') {
+    const code = String(url.searchParams.get('code') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+    return new Response(code ? `삭제 요청 ${code} — 처리됨. 이 계정의 토큰과 연결 정보는 지워졌습니다.` : '삭제 요청 번호가 없습니다.', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
 
   // 여기부터는 열쇠 필요
   const who = await verify(request, env);
@@ -271,13 +277,19 @@ async function oauthCallback(request, env, url, kind, origin) {
   const code = url.searchParams.get('code');
   if (!code) return back(`s=${st.serviceId}&oauth=no_code`);
   const d = await db(env);
-  const service = await d.prepare('SELECT id FROM services WHERE id=? AND space=?').bind(st.serviceId, st.space).first();
+  const service = await d.prepare('SELECT id, handle FROM services WHERE id=? AND space=?').bind(st.serviceId, st.space).first();
   if (!service) return back('oauth=no_service');
   try {
     const redirectUri = `${origin}/api/oauth/${kind}/callback`;
     const short = await meta.exchangeCode(env, kind, redirectUri, code);
-    const long = await meta.longLived(env, kind, short.token);
-    const profile = await meta.me(env, kind, long.token);
+    const long = await meta.longLived(env, kind, short);
+    let igId = '';
+    if (kind === 'ig') {
+      const acct = meta.pickAccount(await meta.igAccounts(env, long.token), service.handle);
+      if (!acct) throw new Error('로그인에서 고른 Instagram 계정이 없다 — 연결할 때 계정을 체크해 주세요');
+      igId = acct.id;
+    }
+    const profile = await meta.me(env, kind, long.token, igId);
     if (!profile.id && short.userId) profile.id = short.userId;
     await ops.saveChannel(env, st.serviceId, kind, { token: long.token, expiresAt: long.expiresAt, profile });
     return back(`s=${st.serviceId}&linked=${kind}`);
@@ -285,6 +297,19 @@ async function oauthCallback(request, env, url, kind, origin) {
     await event(env, st.serviceId, 'oauth.failed', `${meta.kindName(kind)} — ${String(e.message).slice(0, 200)}`, 'bad');
     return back(`s=${st.serviceId}&oauth=failed`);
   }
+}
+
+// 앱 해제(uninstall)·데이터 삭제(delete) — 해당 계정의 채널 토큰을 지운다. 삭제는 확인 번호와 상태 주소를 돌려준다
+async function metaCallback(request, env, kind, what, origin) {
+  let signed = '';
+  try { const form = await request.formData(); signed = String(form.get('signed_request') || ''); } catch { signed = ''; }
+  const payload = await meta.parseSignedRequest(meta.appCreds(env, kind).secret, signed);
+  if (!payload) return err(400, 'bad_signed_request');
+  const uid = String(payload.user_id || payload.profile_id || '');
+  const n = uid ? await ops.forgetChannel(env, kind, uid, what) : 0;
+  if (what === 'uninstall') return ok({ ok: true, channels: n });
+  const code = `${kind}${Date.now().toString(36)}`;
+  return ok({ url: `${origin}/api/meta/deletion?code=${code}`, confirmation_code: code });
 }
 
 // 소재 올리기 — multipart(파일) 또는 json({type:'link'|'text'}). 이미지는 R2 에 두고 /media 로 공개한다.

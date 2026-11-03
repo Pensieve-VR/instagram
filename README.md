@@ -40,13 +40,16 @@ Cloudflare 대시보드 › **pensieve-instagram** › 설정 › **빌드 › �
 
 - `PASSWORDS` — `이름=암호` 를 쉼표로 여러 개 (BM·브레인 스토밍과 같은 형식). 이름마다 공간이 따로
 - `ANTHROPIC_API_KEY` — Claude 키
-- `IG_APP_ID` · `IG_APP_SECRET` — Meta 앱 › Instagram › *API setup with Instagram login*
-- `THREADS_APP_ID` · `THREADS_APP_SECRET` — Meta 앱 › Threads API
+- `IG_APP_SECRET` — Meta 앱 › 앱 설정 › 기본 설정 › 앱 시크릿 코드 (Instagram 은 Unified login 이라 Meta 앱 자체의 시크릿)
+- `THREADS_APP_SECRET` — Meta 앱 › 이용 사례 › Threads API 액세스 › 설정 › Threads 앱 시크릿 코드
+- 앱 ID·구성 ID(`IG_APP_ID` · `IG_CONFIG_ID` · `THREADS_APP_ID`)는 비밀이 아니라 `wrangler.jsonc` vars 에 둔다
 - `SESSION_SECRET` — Meta 토큰 봉인용 긴 임의 문자열(16자 이상). **없으면 계정 연결을 받지 않는다** — 암호(PASSWORDS)를 바꿔도 연결이 살아 있으려면 고정 비밀이 따로 있어야 한다
 
-Meta 앱(developers.facebook.com)에서:
-- 되돌아올 주소: `https://instagram.pensieve.kr/api/oauth/ig/callback`, `https://instagram.pensieve.kr/api/oauth/threads/callback`
-- 앱 역할에 운영할 Instagram 계정 추가 — 자체 계정은 앱 심사 없이 개발 모드로 충분
+Meta 앱(developers.facebook.com, 앱 「Pensieve 홍보실」)에서:
+- 이용 사례: 「Instagram에서 메시지 및 콘텐츠 관리」 · 「Threads API 액세스」
+- **Instagram — Unified login**: 2026-10 이후 새 앱은 Instagram 로그인 방식을 못 쓴다. 앱을 **비즈니스 포트폴리오**에 연결 → *API setup with Unified login* 에서 구성 만들기(게시·인사이트 권한, 되돌아올 주소 `https://instagram.pensieve.kr/api/oauth/ig/callback`) → 구성 ID 를 `IG_CONFIG_ID` 로
+- **Threads**: 되돌아올 주소 `https://instagram.pensieve.kr/api/oauth/th/callback` · 제거 `…/api/meta/th/uninstall` · 삭제 `…/api/meta/th/delete`
+- 앱 역할에 운영 계정을 Instagram·Threads 테스터로 — 자체 계정은 앱 심사 없이 개발 모드로 충분(초대는 각 앱의 설정 › 웹사이트 권한에서 수락)
 - Instagram 계정은 **프로페셔널**(비즈니스/크리에이터) 이어야 연결된다
 
 Cloudflare 자원(전부 무료 요금제, 카드 불필요): D1 `instagram` · KV `instagram-media`(이미지 공개 서빙) · Browser Rendering(카드 이미지; 없으면 소재 이미지만 쓴다) · 크론 `*/5 * * * *` 하나(00:00 UTC 틱이 하루 일도 함께)

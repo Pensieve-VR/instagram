@@ -581,7 +581,7 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
   <div class="sheet"><h4>있음 — 1차 전부</h4><ul>
    <li>암호 입장(PASSWORDS) · 공간별 서비스 묶음</li>
    <li>시작 → 계정명 후보 5개(빈 이름 확인) → 게이트 ①②③</li>
-   <li>Meta 연결(Instagram 로그인 API · Threads API, 60일 토큰 자동 갱신, 봉인 저장)</li>
+   <li>Meta 연결(Instagram Unified login · Threads API — Threads 60일 토큰 자동 갱신, 봉인 저장, 앱 해제·삭제 콜백)</li>
    <li>소재 창고(JPG·글·링크 → 사실만 추림) · 슬롯 설정 · 각도 8개 순환</li>
    <li>이번 주 채우기 — 초안 → 다듬기 → 카드(JPEG) → 승인 대기/예약</li>
    <li>5분 크론 게시(두 단계, 겹침 방지 점유) · 실패 3회 재시도 후 실패 표시 · 매일 09시 지표·요약</li>
@@ -594,10 +594,11 @@ small,.cap{font-size:12.5px;color:var(--ink-muted)}
    <li>자율 루프 — 성과로 각도·시간대 재배분</li>
   </ul></div>
   <div class="sheet gate"><h4>사람이 한 번 — Meta 앱</h4><ul>
-   <li>developers.facebook.com → 앱 만들기(비즈니스) → 제품 추가: <b>Instagram</b>(API setup with Instagram login) · <b>Threads API</b></li>
-   <li>각 제품의 앱 ID·시크릿 → Cloudflare 변수 <code>IG_APP_ID</code> <code>IG_APP_SECRET</code> <code>THREADS_APP_ID</code> <code>THREADS_APP_SECRET</code></li>
-   <li>되돌아올 주소 등록: <code>https://instagram.pensieve.kr/api/oauth/ig/callback</code> · <code>https://instagram.pensieve.kr/api/oauth/threads/callback</code></li>
-   <li>앱 역할(Instagram tester / Threads tester)에 운영할 Instagram 계정 추가 — 자체 계정은 심사 없이 개발 모드로 충분</li>
+   <li>앱 「Pensieve 홍보실」 만듦 — 이용 사례 <b>Instagram에서 메시지 및 콘텐츠 관리</b> · <b>Threads API 액세스</b></li>
+   <li><b>Instagram은 Unified login</b> — 2026-10 이후 새 앱은 Instagram 로그인 방식을 못 쓴다. 앱을 <b>비즈니스 포트폴리오</b>에 연결 → 구성 만들기 → 구성 ID</li>
+   <li>되돌아올 주소: <code>https://instagram.pensieve.kr/api/oauth/ig/callback</code>(구성) · <code>https://instagram.pensieve.kr/api/oauth/th/callback</code>(Threads 설정)</li>
+   <li>시크릿 두 개만 Cloudflare 비밀로 — <code>IG_APP_SECRET</code>(앱 설정 › 기본 설정) · <code>THREADS_APP_SECRET</code>(Threads 설정). 앱 ID·구성 ID는 비밀이 아니라 코드 설정에</li>
+   <li>앱 역할(Instagram 테스터 / Threads 테스터)에 운영 계정 추가 — 자체 계정은 심사 없이 개발 모드로 충분</li>
   </ul></div>
   <div class="sheet gate"><h4>사람이 한 번 — Cloudflare 변수</h4><ul>
    <li><code>PASSWORDS</code> — 이름=암호 (BM·브레인 스토밍과 같은 형식)</li>
