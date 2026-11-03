@@ -26,6 +26,7 @@
     "GRAPH_VERSION": "v26.0",
     // 앱 ID·구성 ID 는 비밀이 아니다(로그인 주소에 그대로 드러난다)
     "IG_APP_ID": "1457444973034330",
+    "IG_CONFIG_ID": "1429584209291987", // 이용 사례 › Instagram API › API setup with Unified login › 구성 「Instagram API(통합 로그인)」 — 토큰 만료 없음
     "THREADS_APP_ID": "1431859891799607",
     "PUBLIC_ORIGIN": "https://instagram.pensieve.kr"
   },
