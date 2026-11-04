@@ -113,7 +113,7 @@ async function api(request, env, ctx, url) {
 
   // 대기 명단 — 홈페이지(pensieve.kr/early)가 부른다. 열쇠 없이, 홈페이지 출처에서만 받는다.
   if (seg[0] === 'waitlist' && !String(seg[1] || '').startsWith('admin')) return waitlistPublic(request, env, seg);
-  // 될까? 베타테스터 신청 — 홈페이지(pensieve.kr/beta)가 부른다. 대기 명단과 같은 출처 규칙.
+  // 될까? 베타테스터 신청 — beta.pensieve.kr 가 부른다. 대기 명단과 같은 출처 규칙(pensieve.kr 계열만).
   if (seg[0] === 'beta' && !String(seg[1] || '').startsWith('admin')) return betaPublic(request, env, seg);
 
   // 여기부터는 열쇠 필요 — 어느 암호든 같은 르네 콘솔(이름은 승인한 사람으로 남긴다)

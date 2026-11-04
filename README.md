@@ -10,7 +10,7 @@
 - **보관함**: 폴더째 놓으면 묶음대로 게시물이 된다(`public/js/folder.js` 규칙: 미디어가 든 맨 아래 폴더 = 게시물 하나, 스토리는 사진마다, `캡션.txt`·`글.txt`·`첫댓글.txt`)
 - **채널**: 줄마다 연결 — Instagram 은 「불러오기」(포트폴리오에 배정된 계정을 다시 로그인 없이), Threads 는 「로그인」, X 는 2차 · 기본 시간대 · 줄 더하기
 - **대기 명단**(사람 아이콘): pensieve.kr/early 신청이 쌓인다 — 총 · 얼리버드 남은 수(선착순 N 바꾸기) · 출처(`?src=`)별 · 컬러별 · 날짜별 · CSV. 홈페이지는 `POST /api/waitlist`(pensieve.kr 출처만, 열쇠 없음)로 넣고 `GET /api/waitlist/stats` 로 「벌써 N명」을 읽는다
-- **될까? 베타 신청**: pensieve.kr/beta 신청이 `d_beta` 에 쌓인다(르네 명단과 따로). 홈페이지는 `POST /api/beta`(pensieve.kr 출처만) · `GET /api/beta/stats`(「지금까지 N팀」). 관리는 로그인한 채로 `GET /api/beta/admin`(출처·단계·필요별 요약) · `/api/beta/admin.csv` · `DELETE /api/beta/admin?email=`
+- **될까? 베타 신청**: beta.pensieve.kr 신청이 `d_beta` 에 쌓인다(르네 명단과 따로). 사이트는 `POST /api/beta`(pensieve.kr·beta.pensieve.kr 출처만) · `GET /api/beta/stats`(「지금까지 N팀」). 관리는 로그인한 채로 `GET /api/beta/admin`(출처·단계·필요별 요약) · `/api/beta/admin.csv` · `DELETE /api/beta/admin?email=`
 - **자동 DM**(말풍선 아이콘): 댓글에 키워드(브랜드 시트의 「르네」·「RENE」 + 더한 말, 번호 1~4)가 오면 그 사람에게 얼리버드 링크를 DM(비공개 답장) + 공개 답글 한 줄. 스토리 답장·DM 에 키워드가 와도 링크로 답한다. 링크는 글마다 출처가 붙는다(`/r/ig_dm_p1` → 대기 명단 출처). 한 사람에게 한 번 · 댓글 뒤 7일 안 · 켠 뒤 들어온 것만 · 한 시간 150개까지. 권한·토큰 문제면 30분 멈추고 그 댓글은 고친 뒤 보낸다(`lib/dm.js`)
 - 1분 크론이 예약을 올리고(컨테이너 → 처리 확인 → 게시 → 첫 댓글) 자동 DM 을 본다 — 한 틱 외부 호출 44번 안쪽(무료 50). 매일 09:00 KST 첫 틱은 지표 · Threads 토큰 갱신 · 정리(그 틱엔 DM 쉼)
 
