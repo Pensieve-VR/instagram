@@ -108,3 +108,15 @@ test('승인 시간 지남 → 승인 막힘(422) · 지금 올리기는 시간�
   const p = await ops.publishNow(env, await ops.getPost(env, 'ptest00001'), '영웅', ORIGIN);
   assert.equal(p.state, 'posted'); assert.equal(p.by, '영웅');
 });
+
+test('폴더 가져오기 — 소재가 100개를 넘어도(D1 바인딩 한도) 한 번에 들어간다', async () => {
+  const env = await setup({ format: 'image', media: 1 });
+  const t = Date.now();
+  const ins = env.DB.raw.prepare("INSERT INTO r_assets (id,key,kind,mime,bytes,title,src,created) VALUES (?,?,?,?,?,?,?,?)");
+  const ids = Array.from({ length: 120 }, (_, i) => `fbulk${String(i).padStart(4, '0')}`);
+  ids.forEach((id) => ins.run(id, `a/${id}.jpg`, 'image', 'image/jpeg', 10, id, 'bulk/' + id, t));
+  const items = Array.from({ length: 40 }, (_, i) => ({ account_id: 'a1test0001', format: 'carousel', title: '묶음 ' + i, caption: '글', media: ids.slice(i * 3, i * 3 + 3), src: 'bulk/' + i }));
+  const r = await ops.importPosts(env, items, '영웅');
+  assert.equal(r.made, 40);
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) AS n FROM r_posts WHERE src LIKE 'bulk/%'").get().n, 40);
+});
