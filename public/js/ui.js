@@ -25,24 +25,6 @@ export function toast(msg, bad = false) {
 export function busy(btn, on) { if (!btn) return; btn.classList.toggle('busy', !!on); btn.disabled = !!on; }
 export async function withBusy(btn, fn) { busy(btn, true); try { return await fn(); } finally { busy(btn, false); } }
 
-const layer = () => document.getElementById('layer');
-export function openModal(content, { narrow = false, onClose } = {}) {
-  const L = layer(); L.innerHTML = ''; L.hidden = false;
-  const box = el('div', { class: 'modal' + (narrow ? ' narrow' : ''), role: 'dialog', 'aria-modal': 'true' });
-  const x = el('button', { class: 'icon-btn x', type: 'button', 'aria-label': '닫기', onclick: () => closeModal() }, iconX());
-  box.append(x, content);
-  L.append(box);
-  L.onclick = (e) => { if (e.target === L) closeModal(); };
-  const esc = (e) => { if (e.key === 'Escape') closeModal(); };
-  document.addEventListener('keydown', esc);
-  L._cleanup = () => { document.removeEventListener('keydown', esc); if (onClose) onClose(); };
-  setTimeout(() => { const f = box.querySelector('textarea, input, button:not(.x)'); if (f) f.focus(); }, 50);
-  return box;
-}
-export function closeModal() { const L = layer(); if (L.hidden) return; L.hidden = true; L.innerHTML = ''; if (L._cleanup) { L._cleanup(); L._cleanup = null; } }
-export const modalOpen = () => !layer().hidden;
-
-export function iconX() { return el('svg:svg', { class: 'ic', viewBox: '0 0 24 24', html: '<path d="M6 6l12 12M18 6L6 18"/>' }); }
 
 export async function copyText(s) {
   try { await navigator.clipboard.writeText(s); toast('복사했습니다'); return true; }
@@ -68,6 +50,30 @@ export function toLocalInput(ms) { const p = kst(ms); return `${p.y}-${pad(p.m +
 export function fromLocalInput(v) { const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if (!m) return null; return kstMs(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]); }
 export function ago(ms) { const s = Math.max(0, (Date.now() - ms) / 1000); if (s < 60) return '방금'; if (s < 3600) return `${Math.floor(s / 60)}분 전`; if (s < 86400) return `${Math.floor(s / 3600)}시간 전`; return `${Math.floor(s / 86400)}일 전`; }
 
-export const STATE_LABEL = { draft: '초안', review: '승인 대기', scheduled: '예약', publishing: '게시 중', posted: '게시됨', failed: '실패', skipped: '건너뜀' };
-export const ANGLE_LABEL = { feature: '기능 하나', problem: '문제 → 해결', compare: '비교', behind: '비하인드', question: '질문 던지기', number: '수치', scene: '사용 장면', notice: '공지' };
-export const KIND_NAME = { ig: 'Instagram', th: 'Threads' };
+export const STATE_LABEL = { review: '내 차례', scheduled: '예약', publishing: '올리는 중', posted: '올라감', failed: '실패', skipped: '건너뜀' };
+export const PLAT = { ig: 'IG', th: 'TH', x: 'X' };
+export const PLAT_NAME = { ig: 'Instagram', th: 'Threads', x: 'X' };
+export const lineLabel = (a) => `${PLAT[a.platform] || a.platform} ${String(a.lang || '').toUpperCase()}`;
+// 계정 색 — 플랫폼·언어로 고정. 같은 조합이 또 있으면 남는 색
+export function lineColors(accounts) {
+  const base = { 'ig-ko': '--l-igko', 'th-ko': '--l-thko', 'ig-en': '--l-igen', 'th-en': '--l-then', 'x-en': '--l-x', 'x-ko': '--l-x' };
+  const used = new Set(); const out = {};
+  for (const a of accounts) {
+    let v = base[`${a.platform}-${a.lang}`];
+    if (!v || used.has(v)) v = '--l-more';
+    used.add(v); out[a.id] = `var(${v})`;
+  }
+  return out;
+}
+export const WORDMARK = '<svg class="wm" viewBox="0 0 418 152" fill="none" aria-label="rené."><g stroke-width="17" stroke-linecap="round" stroke-linejoin="round"><path d="M22 127V61M22 88C25 62 47 52 66 62"/><path d="M98 91H160C161 49 96 47 96 91C96 126 131 140 160 119"/><path d="M194 127V61M194 88C194 49 255 49 255 88V127"/><path d="M291 91H353C354 49 289 47 289 91C289 126 324 140 353 119"/><path d="M318 32L336 16"/></g><circle cx="392" cy="123" r="13"/></svg>';
+export const ICON = {
+  lib: '<path d="M4 4h7v8H4zM13 4h7v8h-7zM4 15h16v5H4z"/>',
+  lines: '<path d="M3 8h18M3 16h18"/><circle cx="8" cy="8" r="2.4"/><circle cx="16" cy="16" r="2.4"/>',
+  brand: '<path d="M5 19c0-8 5-14 14-14 0 9-6 14-14 14z"/><path d="M5 19l7-7"/>',
+  moon: '<path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/>',
+  out: '<path d="M10 17l5-5-5-5M15 12H3M13 3h6v18h-6"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  left: '<path d="M15 6l-6 6 6 6"/>', right: '<path d="M9 6l6 6-6 6"/>',
+  link: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
+};
+export const icon = (k) => el('svg:svg', { class: 'ic', viewBox: '0 0 24 24', html: ICON[k] });

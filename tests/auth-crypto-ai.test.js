@@ -24,7 +24,7 @@ test('로그인 → 열쇠 → 검증, 같은 이름은 같은 공간', async ()
   assert.equal(await verifyToken(env, a.token + 'x'), null);
   assert.equal(await verifyToken(env, 'a.b.c'), null);
   assert.equal(await verifyToken({ PASSWORDS: 'other' }, a.token), null); // 다른 비밀로는 검증 실패
-  const p = await login(env, 'plainpw'); assert.equal(p.name, '홍보실'); assert.match(p.space, /^p-/);
+  const p = await login(env, 'plainpw'); assert.equal(p.name, '르네'); assert.match(p.space, /^p-/);
 });
 
 test('OAuth state 왕복', async () => {
@@ -33,6 +33,8 @@ test('OAuth state 왕복', async () => {
   assert.equal(await readState(env, st.replace(/ig/, 'th')), null); // 변조
   assert.equal(await readState(env, 'junk'), null);
   assert.equal(await readState({ PASSWORDS: 'x' }, st), null);
+  const sa = await makeState(env, 'u-0123456789abcdef', 'a0abc123xy', 'th'); // 르네 콘솔은 계정(줄) ID 를 싣는다
+  assert.equal((await readState(env, sa)).serviceId, 'a0abc123xy');
 });
 
 test('토큰 봉인 왕복 · 다른 열쇠로는 못 연다 · 비밀 없으면 거절(암호를 바꿔도 토큰이 살아야 한다)', async () => {
@@ -59,10 +61,13 @@ test('extractJson — 울타리·앞뒤 말·중첩·문자열 속 괄호', () =
 });
 
 test('mock 답은 모양이 맞다', () => {
-  const c = mock('candidates', '서비스 이름: 될까?\n');
-  assert.equal(c.candidates.length, 6); assert.ok(c.candidates.every((x) => x.handle && x.why));
-  assert.equal(mock('profile', '서비스 이름: 르네\n').options.length, 3);
-  assert.ok(mock('post', 'x').card.headline);
+  const ctx = { text: '종이를 보고 말한다', accounts: [{ id: 'a1', platform: 'ig', lang: 'ko' }, { id: 'a2', platform: 'th', lang: 'en' }], assets: [] };
+  const m = mock('make', '', ctx);
+  assert.deepEqual(m.posts.map((p) => p.account), ['a1', 'a2']);
+  assert.equal(m.posts[0].format, 'carousel'); assert.ok(m.posts[0].slides.every((s) => s.card && s.card.t));
+  assert.equal(m.posts[1].format, 'text');
+  assert.equal(mock('make', '', { ...ctx, assets: [{ id: 'f1', kind: 'video' }] }).posts[0].format, 'reel');
+  assert.match(mock('revise', '', { post: { caption: '원래' } }).caption, /고침/);
   assert.equal(mock('whatever', 'x').ok, true);
 });
 

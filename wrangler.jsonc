@@ -1,8 +1,8 @@
 {
-  // 홍보실 — Cloudflare Workers (정적 화면 + API + 크론). Pages가 아닌 이유: 예약 게시 크론이 Workers에만 있다.
+  // 르네 콘솔 — Cloudflare Workers (정적 화면 + API + 크론). Pages가 아닌 이유: 예약 게시 크론이 Workers에만 있다.
   // 비밀은 여기 두지 않는다 → Cloudflare 대시보드 › pensieve-instagram › 설정 › 빌드 › 변수 및 암호(비밀)
   //   배포 명령 node scripts/deploy.mjs 가 배포 때마다 런타임 비밀로 옮긴다(설정 › 변수 및 비밀에 직접 넣어도 된다)
-  //   PASSWORDS           "이름=암호" 를 쉼표로 여러 개 (BM·브레인 스토밍과 같은 형식) — 이름마다 따로 공간
+  //   PASSWORDS           "이름=암호" 를 쉼표로 여러 개 (BM·브레인 스토밍과 같은 형식) — 어느 암호든 같은 르네 콘솔
   //   ANTHROPIC_API_KEY   Claude 키 (BM·브레인 스토밍에 쓴 키 그대로)
   //   IG_APP_SECRET       Meta 앱 › 앱 설정 › 기본 설정 의 앱 시크릿 코드 (Instagram 은 Unified login — Meta 앱 자체의 ID·시크릿을 쓴다)
   //   THREADS_APP_SECRET  Meta 앱 › 이용 사례 › Threads API 액세스 › 설정 의 Threads 앱 시크릿 코드
@@ -35,10 +35,10 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "instagram", "database_id": "9f6280ac-d612-43ce-9c6a-854161895b5d" }
   ],
-  // 카드 이미지·올린 소재 — Workers KV(무료 요금제 포함, 카드 불필요). /media/<key> 로 공개 서빙(Meta가 가져간다)
+  // 르네 카드·소재(사진·영상) — Workers KV(무료 요금제 포함, 카드 불필요). /media/<key> 로 공개 서빙(Meta가 가져간다)
   "kv_namespaces": [
     { "binding": "MEDIA", "id": "cedae53437a440a886e489e77a9b0365" }
   ],
-  // 카드 HTML → JPEG 렌더(Browser Rendering). 바인딩이 없으면 텍스트 글·소재 이미지만 쓴다
+  // 르네 카드 HTML → JPEG(Browser Rendering). 없으면 카드는 「다시 찍기」로 남고 사진 소재는 그대로 쓴다
   "browser": { "binding": "BROWSER" }
 }
