@@ -10,7 +10,8 @@
 - **보관함**: 폴더째 놓으면 묶음대로 게시물이 된다(`public/js/folder.js` 규칙: 미디어가 든 맨 아래 폴더 = 게시물 하나, 스토리는 사진마다, `캡션.txt`·`글.txt`·`첫댓글.txt`)
 - **채널**: 줄마다 연결 — Instagram 은 「불러오기」(포트폴리오에 배정된 계정을 다시 로그인 없이), Threads 는 「로그인」, X 는 2차 · 기본 시간대 · 줄 더하기
 - **대기 명단**(사람 아이콘): pensieve.kr/early 신청이 쌓인다 — 총 · 얼리버드 남은 수(선착순 N 바꾸기) · 출처(`?src=`)별 · 컬러별 · 날짜별 · CSV. 홈페이지는 `POST /api/waitlist`(pensieve.kr 출처만, 열쇠 없음)로 넣고 `GET /api/waitlist/stats` 로 「벌써 N명」을 읽는다
-- 5분 크론이 예약을 올린다(컨테이너 → 처리 확인 → 게시 → 첫 댓글, 한 틱 외부 호출 40번 안쪽). 매일 09:00 KST 지표 · Threads 토큰 갱신
+- **자동 DM**(말풍선 아이콘): 댓글에 키워드(브랜드 시트의 「르네」·「RENE」 + 더한 말, 번호 1~4)가 오면 그 사람에게 얼리버드 링크를 DM(비공개 답장) + 공개 답글 한 줄. 스토리 답장·DM 에 키워드가 와도 링크로 답한다. 링크는 글마다 출처가 붙는다(`/r/ig_dm_p1` → 대기 명단 출처). 한 사람에게 한 번 · 댓글 뒤 7일 안 · 켠 뒤 들어온 것만 · 한 시간 150개까지. 권한·토큰 문제면 30분 멈추고 그 댓글은 고친 뒤 보낸다(`lib/dm.js`)
+- 1분 크론이 예약을 올리고(컨테이너 → 처리 확인 → 게시 → 첫 댓글) 자동 DM 을 본다 — 한 틱 외부 호출 44번 안쪽(무료 50). 매일 09:00 KST 첫 틱은 지표 · Threads 토큰 갱신 · 정리(그 틱엔 DM 쉼)
 
 ## 구조
 
@@ -31,13 +32,14 @@ lib/
   render.js        르네 카드 틀 → JPEG(Browser Rendering)
   meta.js          Instagram(Unified login) · Threads API
   ops.js           줄·소재·게시물·만들기·게시·지표
+  dm.js            자동 DM — 키워드 · 댓글 비공개 답장 · 스토리 답장 · 중복 막기 · 멈춤
   auth.js · crypto.js · http.js · media.js
 tests/             node --test (plan·publish·folder·db·auth) · smoke.mjs (로컬 wrangler dev 상대 흐름 시험)
 ```
 
 ## 저장소
 
-D1 `instagram` — `r_accounts`(줄·봉인 토큰) · `r_posts` · `r_ideas`(글감) · `r_assets`(소재) · `r_events` · `r_meta`(브랜드 시트·선착순 N 등) · `r_waitlist`(대기 명단 — 이메일·출처·컬러·구성·동의, IP 는 해시만). 첫 요청 때 만든다.
+D1 `instagram` — `r_accounts`(줄·봉인 토큰) · `r_posts` · `r_ideas`(글감) · `r_assets`(소재) · `r_events` · `r_meta`(브랜드 시트·선착순 N 등) · `r_waitlist`(대기 명단 — 이메일·출처·컬러·구성·동의, IP 는 해시만) · `r_dm`(자동 DM 기록 — 댓글·메시지 하나에 한 줄, 30일 지나면 글은 지운다). 첫 요청 때 만든다.
 옛 홍보실 표(services·channels·posts…)가 있으면 **연결된 토큰만 옮기고** 옛 표는 지운다(한 번). 옛 KV 미디어(m/·c/)는 다음 09:00 크론이 지운다.
 KV `instagram-media` — 소재·카드(`a/<id>.jpg|mp4`, 25MB 까지), `/media/<key>` 로 공개(Meta·Claude 가 가져간다).
 
@@ -51,6 +53,7 @@ Cloudflare › **pensieve-instagram** › 설정 › 빌드 › 변수 및 암�
 - 영어 Threads — Threads 앱 테스터 초대 수락 한 번 → 채널 › TH EN › 로그인 (앱 심사를 받으면 이 단계도 없어진다)
 - X — 2차. X 개발자 계정 + 선불 크레딧(종량제) 필요
 - Instagram 첫 댓글은 구성에 댓글 권한이 없으면 Meta 가 거절한다 → 게시는 되고 역에 경고만 남는다
+- 자동 DM — 구성 「Instagram API(통합 로그인)」에 `instagram_manage_comments` · `instagram_manage_messages` 를 더하고 채널 › IG › 다시 연결 · Instagram 앱 › 설정 › 메시지 및 스토리 답장 › 메시지 제어 › 연결된 도구 › 「메시지 접근 허용」. 콘솔 자동 DM 시트가 빠진 권한을 보여 준다
 
 ## 로컬 실행 · 검사
 

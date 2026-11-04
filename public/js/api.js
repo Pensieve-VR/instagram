@@ -59,5 +59,9 @@ export const api = {
   waitlist: () => call('GET', '/api/waitlist/admin'),
   waitlistCap: (cap) => call('POST', '/api/waitlist/admin', { cap }),
   waitlistRemove: (email) => call('DELETE', '/api/waitlist/admin?email=' + encodeURIComponent(email)),
+  dm: () => call('GET', '/api/dm'),
+  saveDm: (body) => call('POST', '/api/dm', body),
+  dmCheck: () => call('GET', '/api/dm/check'),
+  dmRun: () => call('POST', '/api/dm/run', {}),
   async waitlistCsv() { const r = await fetch('/api/waitlist/admin.csv', { headers: { authorization: 'Bearer ' + API.token } }); if (!r.ok) throw new ApiError(r.status, null); return r.blob(); },
 };

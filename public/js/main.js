@@ -26,7 +26,7 @@ async function boot() {
   oauthReturn();
   setInterval(() => { if (document.visibilityState === 'visible' && !S.importing) load({ quiet: true }); }, 60000);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (S.sheet) closeSheet(); else select(''); } });
-  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderMap, 150); });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (S.data) renderTop(); renderMap(); }, 150); });
 }
 function showLock() {
   $('lock').hidden = false;
@@ -72,6 +72,12 @@ function upsertPost(post) {
 }
 
 // ---------- 머리 ----------
+// 좁은 화면(도구 다섯 개)에선 「11.2–8」처럼 줄인다
+function weekLabel(from) {
+  const a = kst(from); const b = kst(from + 6 * DAY);
+  if (!matchMedia('(max-width:420px)').matches) return `${md(from)} – ${md(from + 6 * DAY)}`;
+  return a.m === b.m ? `${a.m + 1}.${a.d}–${b.d}` : `${a.m + 1}.${a.d}–${b.m + 1}.${b.d}`;
+}
 function renderTop() {
   const d = S.data; const top = $('top'); top.innerHTML = '';
   const from = d.from;
@@ -79,14 +85,14 @@ function renderTop() {
   const failed = el('button', { class: 'count fail', type: 'button', title: '실패', hidden: !d.waiting.failed, onclick: () => { const f = d.posts.find((p) => p.state === 'failed'); if (f) { select(f.id); openSheet({ kind: 'post', id: f.id }); } else toast('이번 주엔 실패한 역이 없어요 — 다른 주를 보세요'); } }, String(d.waiting.failed));
   const week = el('div', { class: 'week' },
     el('button', { class: 'iconb', type: 'button', 'aria-label': '지난주', onclick: () => { S.week--; select(''); load(); } }, icon('left')),
-    el('b', {}, `${md(from)} – ${md(from + 6 * DAY)}`),
+    el('b', {}, weekLabel(from)),
     el('button', { class: 'iconb', type: 'button', 'aria-label': '다음 주', onclick: () => { S.week++; select(''); load(); } }, icon('right')),
     S.week ? el('button', { class: 'today', type: 'button', onclick: () => { S.week = 0; select(''); load(); } }, '오늘') : null);
-  const tool = (k, label, fn, cls = '') => el('button', { class: 'iconb ' + cls + (S.sheet && S.sheet.kind === k ? ' on' : ''), type: 'button', 'aria-label': label, title: label, onclick: fn }, icon({ lib: 'lib', wait: 'people', lines: 'lines', brand: 'brand', theme: 'moon', out: 'out' }[k]));
+  const tool = (k, label, fn, cls = '') => el('button', { class: 'iconb ' + cls + (S.sheet && S.sheet.kind === k ? ' on' : ''), type: 'button', 'aria-label': label, title: label, onclick: fn }, icon({ lib: 'lib', dm: 'chat', wait: 'people', lines: 'lines', brand: 'brand', theme: 'moon', out: 'out' }[k]));
   top.append(
     el('span', { html: WORDMARK }), wait, failed, week,
     el('div', { class: 'tools' },
-      tool('lib', '보관함', () => toggleSheet('lib')), tool('wait', '대기 명단', () => toggleSheet('wait')), tool('lines', '채널', () => toggleSheet('lines')), tool('brand', '브랜드 시트', () => toggleSheet('brand')),
+      tool('lib', '보관함', () => toggleSheet('lib')), tool('dm', '자동 DM', () => toggleSheet('dm')), tool('wait', '대기 명단', () => toggleSheet('wait')), tool('lines', '채널', () => toggleSheet('lines')), tool('brand', '브랜드 시트', () => toggleSheet('brand')),
       tool('theme', '테마', () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('rene.theme', t); } catch { /* 무시 */ } renderMap(); }, 'opt'),
       tool('out', '나가기', () => { clearAuth(); location.reload(); }, 'opt')));
 }
@@ -180,6 +186,7 @@ function renderSheet() {
   if (k === 'lines') return sheetLines();
   if (k === 'brand') return sheetBrand();
   if (k === 'wait') return sheetWait();
+  if (k === 'dm') return sheetDm();
 }
 
 // ---------- 만들기 ----------
@@ -561,6 +568,71 @@ async function sheetWait() {
   const csv = el('button', { class: 'btn', type: 'button', disabled: !w.count, onclick: async (e) => { busy(e.currentTarget, true); try { const b = await api.waitlistCsv(); const a = el('a', { href: URL.createObjectURL(b), download: 'rene-waitlist.csv' }); document.body.append(a); a.click(); a.remove(); } catch (er) { fail(er); } finally { busy(e.currentTarget, false); } } }, el('span', {}, 'CSV 내려받기'));
   const open = el('a', { class: 'btn ghost', href: 'https://www.pensieve.kr/early?src=console', target: '_blank', rel: 'noopener' }, '신청 화면', icon('link'));
   frame('대기 명단', body, el('div', { class: 'foot' }, csv, el('span', { class: 'grow' }), open));
+}
+
+// ---------- 자동 DM ----------
+const DM_STATE = { sent: '보냄', dup: '이미 보냄', fail: '실패', retry: '다시 볼 것', sending: '보내는 중' };
+async function sheetDm() {
+  const st = S.sheet;
+  if (!st.data) {
+    frame('자동 DM', el('div', { class: 'body' }, el('p', { class: 'muted' }, '…')));
+    try { st.data = await api.dm(); } catch (e) { fail(e); return; }
+    if (S.sheet !== st) return;
+    api.dmCheck().then((r) => { if (S.sheet === st) { st.check = r; sheetDm(); } }).catch(() => { /* 권한 점검은 덤 */ });
+  }
+  const { settings: s, accounts, counts, recent } = st.data;
+  const b = S.data.brand;
+  const t = (id, label, value, rows = 0, ph = '') => {
+    const f = rows ? el('textarea', { id, rows, placeholder: ph }) : el('input', { id, type: 'text', placeholder: ph });
+    f.value = value;
+    return el('div', { class: 'field' }, el('label', { class: 'lbl', for: id }, label), f);
+  };
+  const chk = (id, label, on) => el('label', { class: 'row nowrap', style: 'font-size:14px;align-items:flex-start' }, el('input', { id, type: 'checkbox', checked: !!on, style: 'margin-top:3px;flex:none' }), el('span', {}, label));
+  const now = Date.now();
+  const accNote = (a) => {
+    const c = st.check && st.check.accounts.find((x) => x.id === a.id);
+    const parts = [];
+    if (!s.on) parts.push(el('div', { class: 'note ok' }, `@${a.username} — 꺼져 있어요`));
+    else if (a.pausedUntil > now) parts.push(el('div', { class: 'note bad' }, `@${a.username} — 멈춤(${hm(a.pausedUntil)}에 다시 봐요): ${a.error}`));
+    else if (!a.since) parts.push(el('div', { class: 'note ok' }, `@${a.username} — 1분 안에 시작해요(켠 뒤에 들어온 댓글부터)`));
+    else parts.push(el('div', { class: 'note ok' }, `@${a.username} — 보는 중 · 마지막 확인 ${a.lastRun ? ago(a.lastRun) : '—'}${a.error ? ' · ' + a.error : ''}`));
+    if (a.msgError) parts.push(el('div', { class: 'note' }, `스토리 답장·DM 읽기 안 됨 — ${a.msgError}`));
+    if (c && c.missing && c.missing.length) parts.push(el('div', { class: 'note bad' }, `권한 없음: ${c.missing.join(' · ')}`));
+    return parts;
+  };
+  const missing = st.check && st.check.accounts.some((x) => x.missing && x.missing.length);
+  const body = el('div', { class: 'body' },
+    el('div', { class: 'big' }, el('b', { class: 'mono' }, String(counts.sent)), el('span', {}, `명에게 보냄 · 오늘 ${counts.today}${counts.failed ? ` · 실패 ${counts.failed}` : ''}`)),
+    accounts.length ? accounts.flatMap(accNote) : el('div', { class: 'note' }, 'Instagram 줄이 연결되면 시작해요(채널)'),
+    missing ? el('details', { open: true }, el('summary', {}, '권한 켜는 법 (한 번)'), el('ol', { style: 'margin:6px 0 0;padding-left:20px;font-size:13px;line-height:1.6' },
+      el('li', {}, 'Meta 앱 › 이용 사례 › Instagram API › 구성 「Instagram API(통합 로그인)」에 instagram_manage_comments · instagram_manage_messages 더하기'),
+      el('li', {}, '채널 › IG › 다시 연결(새 권한으로 토큰 받기)'),
+      el('li', {}, 'Instagram 앱 › 설정 › 메시지 및 스토리 답장 › 메시지 제어 › 연결된 도구 › 「메시지 접근 허용」 켜기'))) : null,
+    chk('dOn', '자동 DM 켜기 — 댓글·답장에 키워드가 오면 얼리버드 링크를 DM 으로', s.on),
+    t('dWords', `키워드 — 브랜드 시트의 「${b.kw.ko}」「${b.kw.en}」는 늘 들어가요`, s.words, 0, '쉼표로'),
+    chk('dNum', '번호 댓글(1~4)에도 — 컬러 고르기 글', s.numbers),
+    chk('dMsg', '스토리 답장·DM 에도', s.messages),
+    t('dTextKo', 'DM 글 KO — {link} 자리에 그 글의 링크(출처가 붙어요)', s.text.ko, 6),
+    t('dTextEn', 'DM 글 EN', s.text.en, 6),
+    t('dRepKo', '공개 답글 KO — 줄마다 하나, 그중 하나를 골라 달아요(비우면 안 달아요)', s.replies.ko.join('\n'), 4),
+    t('dRepEn', '공개 답글 EN', s.replies.en.join('\n'), 4),
+    el('p', { class: 'muted', style: 'margin:0;font-size:12px' }, '한 사람에게 한 번 · 댓글 뒤 7일 안 · 한 시간 150개까지 · 1분마다 확인'),
+    recent.length ? el('details', {}, el('summary', {}, `최근 ${recent.length}개`), el('div', { class: 'log' }, recent.map((r) => el('div', {},
+      el('span', { class: 'mono' }, ago(r.at)),
+      el('span', { class: r.state === 'fail' ? 'bad' : r.state === 'retry' ? 'warn' : '' }, `@${r.username || '?'} · ${r.kind === 'comment' ? '댓글' : '메시지'} 「${r.text || '…'}」 → ${DM_STATE[r.state] || r.state}${r.error ? ' — ' + r.error : ''}`))))) : null);
+  const v = (id) => $(id).value;
+  const save = el('button', { class: 'btn ink', type: 'button', onclick: async (e) => {
+    busy(e.currentTarget, true);
+    try {
+      const r = await api.saveDm({ on: $('dOn').checked, numbers: $('dNum').checked, messages: $('dMsg').checked, words: v('dWords'), text: { ko: v('dTextKo'), en: v('dTextEn') }, replies: { ko: v('dRepKo'), en: v('dRepEn') } });
+      st.data = { ...st.data, settings: r.settings }; toast('저장했어요'); sheetDm();
+    } catch (er) { fail(er); busy(e.currentTarget, false); }
+  } }, el('span', {}, '저장'));
+  const run = el('button', { class: 'btn', type: 'button', disabled: !s.on || !accounts.length, onclick: async (e) => {
+    busy(e.currentTarget, true);
+    try { const r = await api.dmRun(); st.data = r; toast(r.run.sent ? `${r.run.sent}개 보냈어요` : '새로 보낼 건 없어요'); sheetDm(); } catch (er) { fail(er); busy(e.currentTarget, false); }
+  } }, el('span', {}, '지금 확인'));
+  frame('자동 DM', body, el('div', { class: 'foot' }, save, el('span', { class: 'grow' }), run));
 }
 
 // ---------- 브랜드 시트 ----------

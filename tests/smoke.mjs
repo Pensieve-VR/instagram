@@ -129,6 +129,16 @@ step('대기 명단 — 홈페이지 출처만 · 순번 · 통계 · 관리 요
   const un = await fetch(BASE + '/api/waitlist/admin', { headers: { origin: ORIGIN } }); assert.equal(un.status, 401); // 열쇠 없이는 관리 못 봄
   assert.equal((await j('DELETE', '/api/waitlist/admin?email=smoke@example.com')).data.removed, 1); }
 
+step('자동 DM — 설정 저장·되돌리기 · 상태 · 권한 점검 · 지금 확인(연결 없음)');
+{ const un = await fetch(BASE + '/api/dm', { headers: { origin: ORIGIN } }); assert.equal(un.status, 401);
+  const o = (await j('GET', '/api/dm')).data; assert.equal(typeof o.settings.on, 'boolean'); assert.ok(Array.isArray(o.recent));
+  const r = await j('POST', '/api/dm', { words: '시험, smoke', replies: { ko: '' } });
+  assert.equal(r.status, 200); assert.equal(r.data.settings.words, '시험, smoke'); assert.deepEqual(r.data.settings.replies.ko, []);
+  assert.match(r.data.settings.text.ko, /\{link\}/);
+  assert.equal((await j('GET', '/api/dm/check')).status, 200);
+  const run = await j('POST', '/api/dm/run', {}); assert.equal(run.status, 200); assert.equal(run.data.run.sent, 0);
+  await j('POST', '/api/dm', o.settings); }
+
 step('치우기');
 { const s = (await j('GET', '/api/state', undefined)).data;
   for (const p of s.posts) await j('DELETE', `/api/posts/${p.id}`);

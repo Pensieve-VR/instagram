@@ -95,6 +95,7 @@ button.chip:hover{background:var(--hover)}
 .week .today:hover{background:var(--hover)}
 .top .tools{display:flex;align-items:center;gap:2px}
 @media (max-width:560px){.week b{font-size:12px;padding:0 2px}.week .iconb{width:30px}.top .wm{display:none}.top .tools .opt{display:none}}
+@media (max-width:420px){.top{gap:4px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}.top .tools{gap:0}.top .tools .iconb{width:32px}.week .iconb{width:24px}.count{padding:0 9px 0 8px;gap:5px}}
 
 /* 노선도 */
 .map{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:96px}

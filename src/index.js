@@ -10,6 +10,8 @@ import { sealReady } from '../lib/crypto.js';
 import { mediaReady } from '../lib/media.js';
 import { DAY, problems, FORMATS } from '../lib/plan.js';
 import * as waitlist from '../lib/waitlist.js';
+import * as dm from '../lib/dm.js';
+import { metaGet, metaSet } from '../lib/db.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -29,16 +31,30 @@ export default {
   },
 };
 
-// 크론 하나(5분). 00:00~00:04 UTC 틱(09:00 KST)은 하루 일(지표·토큰·옛 미디어 정리)도 함께.
+// 크론 하나(1분) — 예약 게시 + 자동 DM. 00:00~00:04 UTC(09:00 KST) 중 첫 틱은 하루 일(지표·토큰·정리)도 — 그 틱엔 DM 을 쉰다(외부 호출 50번 한도).
 export const isDailyTick = (ms) => { const d = new Date(ms); return d.getUTCHours() === 0 && d.getUTCMinutes() < 5; };
+async function claimDaily(env, at) {
+  const day = new Date(at + 9 * 3600e3).toISOString().slice(0, 10);
+  if ((await metaGet(env, 'daily')) === day) return false;
+  await metaSet(env, 'daily', day);
+  return true;
+}
 async function cron(env, at) {
   try {
     const due = await ops.publishDue(env, at);
     if (due.length) console.log('publishDue', JSON.stringify(due));
-    if (isDailyTick(at)) {
+    if (isDailyTick(at) && (await claimDaily(env, at))) {
       await ops.refreshTokens(env);
       await ops.collectMetrics(env);
       await ops.cleanupOldMedia(env);
+      await dm.dmCleanup(env, at);
+      return;
+    }
+    const used = Math.min(40, due.filter((o) => o.result !== 'daily_limit').length * 30); // publishDue 가 잡는 몫(보수적)
+    const budget = 44 - used;
+    if (budget >= 2) {
+      const r = await dm.runDm(env, { now: at, budget });
+      if (r.sent || r.failed) console.log('dm', JSON.stringify(r));
     }
   } catch (e) { console.error('cron', e && e.stack || e); }
 }
@@ -182,6 +198,11 @@ async function api(request, env, ctx, url) {
     if (m === 'POST') { const { body, error } = await readJson(request, 40000); if (error) return err(400, error); return ok({ brand: await ops.setBrand(env, body) }); }
   }
   if (seg[0] === 'sync' && m === 'POST') return ok({ metrics: await ops.collectMetrics(env) });
+  // 자동 DM — 설정 · 상태 · 기록 · 권한 점검 · 지금 확인
+  if (seg[0] === 'dm' && !seg[1] && m === 'GET') return ok(await dm.dmOverview(env));
+  if (seg[0] === 'dm' && !seg[1] && m === 'POST') { const { body, error } = await readJson(request, 20000); if (error) return err(400, error); return ok({ settings: await dm.setDm(env, body) }); }
+  if (seg[0] === 'dm' && seg[1] === 'check' && m === 'GET') return ok({ accounts: await dm.dmCheck(env), need: meta.DM_SCOPES });
+  if (seg[0] === 'dm' && seg[1] === 'run' && m === 'POST') { const r = await dm.runDm(env, { now: Date.now(), budget: 30 }); return ok({ run: r, ...(await dm.dmOverview(env)) }); }
   // 대기 명단 관리 — 요약 · CSV · 선착순 인원
   if (seg[0] === 'waitlist' && seg[1] === 'admin' && m === 'GET') return ok(await waitlist.summary(env));
   if (seg[0] === 'waitlist' && seg[1] === 'admin' && m === 'DELETE') return ok({ removed: await waitlist.remove(env, url.searchParams.get('email')) });

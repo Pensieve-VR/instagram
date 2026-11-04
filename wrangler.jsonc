@@ -18,8 +18,8 @@
   "workers_dev": true,
   "preview_urls": false,
   "triggers": {
-    // 크론 하나 — 5분마다 예약 게시. 00:00 UTC(09:00 KST) 틱은 지표·요약·토큰 갱신도 함께(무료 요금제 크론 수를 아낀다)
-    "crons": ["*/5 * * * *"]
+    // 크론 하나 — 1분마다 예약 게시 + 자동 DM(댓글·스토리 답장). 09:00 KST 첫 틱은 지표·토큰 갱신·정리(무료 요금제 크론 수를 아낀다)
+    "crons": ["* * * * *"]
   },
   "vars": {
     "CLAUDE_MODEL": "claude-sonnet-5-5",
