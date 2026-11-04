@@ -110,6 +110,25 @@ step('브랜드 시트 저장');
   assert.equal(r.status, 200); assert.ok(r.data.brand.facts.includes('시험용 사실'));
   await j('POST', '/api/brand', b); }
 
+step('대기 명단 — 홈페이지 출처만 · 순번 · 통계 · 관리 요약·CSV · 지우기');
+{ const W = 'https://www.pensieve.kr';
+  const pre = await fetch(BASE + '/api/waitlist', { method: 'OPTIONS', headers: { origin: W, 'access-control-request-method': 'POST' } });
+  assert.equal(pre.status, 204); assert.equal(pre.headers.get('access-control-allow-origin'), W);
+  const body = { email: 'smoke@example.com', src: 'smoke', lang: 'ko', color: 'doze', bundle: 'solo', privacy: true, ad: true };
+  const evil = await fetch(BASE + '/api/waitlist', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  assert.equal(evil.status, 403);
+  const send = (b) => fetch(BASE + '/api/waitlist', { method: 'POST', headers: { origin: W, 'content-type': 'application/json' }, body: JSON.stringify(b) });
+  const r1 = await send(body); assert.equal(r1.status, 200); assert.equal(r1.headers.get('access-control-allow-origin'), W);
+  const j1 = await r1.json(); assert.ok(j1.position >= 1);
+  const r2 = await (await send({ ...body, email: 'SMOKE@example.com' })).json(); assert.equal(r2.already, true); assert.equal(r2.position, j1.position);
+  assert.equal((await send({ ...body, privacy: false })).status, 400);
+  const st = await (await fetch(BASE + '/api/waitlist/stats')).json(); assert.ok(st.count >= 1 && st.cap >= 1);
+  assert.equal((await j('GET', '/api/waitlist/admin', undefined, {})).status, 200);
+  const sum = (await j('GET', '/api/waitlist/admin')).data; assert.ok(sum.bySrc.some((x) => x.key === 'smoke'));
+  const csv = await (await fetch(BASE + '/api/waitlist/admin.csv', { headers: h() })).text(); assert.match(csv, /smoke@example\.com/);
+  const un = await fetch(BASE + '/api/waitlist/admin', { headers: { origin: ORIGIN } }); assert.equal(un.status, 401); // 열쇠 없이는 관리 못 봄
+  assert.equal((await j('DELETE', '/api/waitlist/admin?email=smoke@example.com')).data.removed, 1); }
+
 step('치우기');
 { const s = (await j('GET', '/api/state', undefined)).data;
   for (const p of s.posts) await j('DELETE', `/api/posts/${p.id}`);

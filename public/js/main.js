@@ -82,11 +82,11 @@ function renderTop() {
     el('b', {}, `${md(from)} – ${md(from + 6 * DAY)}`),
     el('button', { class: 'iconb', type: 'button', 'aria-label': '다음 주', onclick: () => { S.week++; select(''); load(); } }, icon('right')),
     S.week ? el('button', { class: 'today', type: 'button', onclick: () => { S.week = 0; select(''); load(); } }, '오늘') : null);
-  const tool = (k, label, fn, cls = '') => el('button', { class: 'iconb ' + cls + (S.sheet && S.sheet.kind === k ? ' on' : ''), type: 'button', 'aria-label': label, title: label, onclick: fn }, icon({ lib: 'lib', lines: 'lines', brand: 'brand', theme: 'moon', out: 'out' }[k]));
+  const tool = (k, label, fn, cls = '') => el('button', { class: 'iconb ' + cls + (S.sheet && S.sheet.kind === k ? ' on' : ''), type: 'button', 'aria-label': label, title: label, onclick: fn }, icon({ lib: 'lib', wait: 'people', lines: 'lines', brand: 'brand', theme: 'moon', out: 'out' }[k]));
   top.append(
     el('span', { html: WORDMARK }), wait, failed, week,
     el('div', { class: 'tools' },
-      tool('lib', '보관함', () => toggleSheet('lib')), tool('lines', '채널', () => toggleSheet('lines')), tool('brand', '브랜드 시트', () => toggleSheet('brand')),
+      tool('lib', '보관함', () => toggleSheet('lib')), tool('wait', '대기 명단', () => toggleSheet('wait')), tool('lines', '채널', () => toggleSheet('lines')), tool('brand', '브랜드 시트', () => toggleSheet('brand')),
       tool('theme', '테마', () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('rene.theme', t); } catch { /* 무시 */ } renderMap(); }, 'opt'),
       tool('out', '나가기', () => { clearAuth(); location.reload(); }, 'opt')));
 }
@@ -179,6 +179,7 @@ function renderSheet() {
   if (k === 'lib') return sheetLib();
   if (k === 'lines') return sheetLines();
   if (k === 'brand') return sheetBrand();
+  if (k === 'wait') return sheetWait();
 }
 
 // ---------- 만들기 ----------
@@ -535,6 +536,31 @@ async function connect(btn, id) {
   busy(btn, true);
   try { const r = await api.connect(id); location.href = r.url; }
   catch (e) { fail(e); busy(btn, false); }
+}
+
+// ---------- 대기 명단 ----------
+const SWATCH = { doze: '#c7b0d6', cloud: '#efe7dd', sprout: '#c4cdbf', whale: '#3b414a' };
+function bars(list, colorOf) {
+  const max = Math.max(1, ...list.map((x) => x.n));
+  return el('div', { class: 'bars' }, list.map((x) => el('div', { class: 'bar' }, el('span', { class: 'mono k' }, x.key), el('i', { style: `width:${Math.max(4, (x.n / max) * 100)}%;${colorOf ? `background:${colorOf(x.key)}` : ''}` }), el('b', { class: 'mono' }, String(x.n)))));
+}
+async function sheetWait() {
+  const st = S.sheet;
+  if (!st.data) { frame('대기 명단', el('div', { class: 'body' }, el('p', { class: 'muted' }, '…'))); try { st.data = await api.waitlist(); } catch (e) { fail(e); return; } if (S.sheet !== st) return; }
+  const w = st.data;
+  const used = w.cap - w.left;
+  const capIn = el('input', { type: 'text', inputmode: 'numeric', value: String(w.cap), style: 'width:90px;padding:6px 10px', 'aria-label': '선착순 인원' });
+  const body = el('div', { class: 'body' },
+    el('div', { class: 'big' }, el('b', { class: 'mono' }, String(w.count)), el('span', {}, '명')),
+    el('div', { class: 'field' }, el('span', { class: 'lbl' }, '얼리버드', el('span', { class: 'mono' }, `${used}/${w.cap} · 남음 ${w.left}`)), el('div', { class: 'bar-p' }, el('i', { style: `width:${Math.min(100, (used / Math.max(w.cap, 1)) * 100)}%;background:var(--amber)` })),
+      el('div', { class: 'row' }, el('span', { class: 'muted', style: 'font-size:13px' }, '선착순'), capIn, el('button', { class: 'btn sm', type: 'button', onclick: async () => { try { await api.waitlistCap(Number(capIn.value)); st.data = null; toast('바꿨어요'); sheetWait(); } catch (e) { fail(e); } } }, '저장'))),
+    w.count ? el('div', { class: 'field' }, el('span', { class: 'lbl' }, '어디서 왔나'), bars(w.bySrc)) : el('p', { class: 'muted', style: 'margin:0;font-size:14px' }, 'pensieve.kr/early 에서 신청이 들어오면 여기 쌓여요. 게시물 링크의 ?src= 로 어느 글에서 왔는지 셉니다.'),
+    w.count ? el('div', { class: 'field' }, el('span', { class: 'lbl' }, '컬러'), bars(w.byColor, (k) => SWATCH[k] || 'var(--ink3)')) : null,
+    w.byDay.length ? el('div', { class: 'field' }, el('span', { class: 'lbl' }, '날짜'), bars(w.byDay.slice(-14))) : null,
+    w.recent.length ? el('details', {}, el('summary', {}, `최근 ${w.recent.length}명`), el('div', { class: 'log' }, w.recent.map((r) => el('div', {}, el('span', { class: 'mono' }, ago(r.created)), el('span', { class: 'row', style: 'justify-content:space-between' }, `${r.email} · ${r.src || '바로'}${r.earlybird ? '' : ' · 알림만'}`, el('button', { class: 'btn sm ghost danger', type: 'button', onclick: (e) => twoTap(e.currentTarget, '지울까요?', async () => { await api.waitlistRemove(r.email); st.data = null; toast('지웠어요'); sheetWait(); }) }, '×')))))) : null);
+  const csv = el('button', { class: 'btn', type: 'button', disabled: !w.count, onclick: async (e) => { busy(e.currentTarget, true); try { const b = await api.waitlistCsv(); const a = el('a', { href: URL.createObjectURL(b), download: 'rene-waitlist.csv' }); document.body.append(a); a.click(); a.remove(); } catch (er) { fail(er); } finally { busy(e.currentTarget, false); } } }, el('span', {}, 'CSV 내려받기'));
+  const open = el('a', { class: 'btn ghost', href: 'https://www.pensieve.kr/early?src=console', target: '_blank', rel: 'noopener' }, '신청 화면', icon('link'));
+  frame('대기 명단', body, el('div', { class: 'foot' }, csv, el('span', { class: 'grow' }), open));
 }
 
 // ---------- 브랜드 시트 ----------

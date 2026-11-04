@@ -75,5 +75,6 @@ export const ICON = {
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   left: '<path d="M15 6l-6 6 6 6"/>', right: '<path d="M9 6l6 6-6 6"/>',
   link: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
+  people: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M16 14.2c2.8.2 5 2.6 5 5.8"/>',
 };
 export const icon = (k) => el('svg:svg', { class: 'ic', viewBox: '0 0 24 24', html: ICON[k] });

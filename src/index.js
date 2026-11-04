@@ -9,6 +9,7 @@ import { renderReady } from '../lib/render.js';
 import { sealReady } from '../lib/crypto.js';
 import { mediaReady } from '../lib/media.js';
 import { DAY, problems, FORMATS } from '../lib/plan.js';
+import * as waitlist from '../lib/waitlist.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -92,6 +93,9 @@ async function api(request, env, ctx, url) {
     const code = String(url.searchParams.get('code') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
     return new Response(code ? `삭제 요청 ${code} — 처리됨. 이 계정의 토큰과 연결 정보는 지워졌습니다.` : '삭제 요청 번호가 없습니다.', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
   }
+
+  // 대기 명단 — 홈페이지(pensieve.kr/early)가 부른다. 열쇠 없이, 홈페이지 출처에서만 받는다.
+  if (seg[0] === 'waitlist' && !String(seg[1] || '').startsWith('admin')) return waitlistPublic(request, env, seg);
 
   // 여기부터는 열쇠 필요 — 어느 암호든 같은 르네 콘솔(이름은 승인한 사람으로 남긴다)
   const who = await verify(request, env);
@@ -178,9 +182,35 @@ async function api(request, env, ctx, url) {
     if (m === 'POST') { const { body, error } = await readJson(request, 40000); if (error) return err(400, error); return ok({ brand: await ops.setBrand(env, body) }); }
   }
   if (seg[0] === 'sync' && m === 'POST') return ok({ metrics: await ops.collectMetrics(env) });
+  // 대기 명단 관리 — 요약 · CSV · 선착순 인원
+  if (seg[0] === 'waitlist' && seg[1] === 'admin' && m === 'GET') return ok(await waitlist.summary(env));
+  if (seg[0] === 'waitlist' && seg[1] === 'admin' && m === 'DELETE') return ok({ removed: await waitlist.remove(env, url.searchParams.get('email')) });
+  if (seg[0] === 'waitlist' && seg[1] === 'admin' && m === 'POST') { const { body, error } = await readJson(request, 2000); if (error) return err(400, error); return ok({ cap: await waitlist.setCap(env, body.cap) }); }
+  if (seg[0] === 'waitlist' && seg[1] === 'admin.csv' && m === 'GET') return new Response('\ufeff' + await waitlist.toCsv(env), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="rene-waitlist.csv"', 'cache-control': 'no-store' } });
   return err(404, 'not_found');
 }
 const arr = (v) => (Array.isArray(v) ? v : []);
+
+async function waitlistPublic(request, env, seg) {
+  const o = waitlist.allowedOrigin(request, env);
+  const cors = (r, origin = o) => { if (origin) { r.headers.set('access-control-allow-origin', origin); r.headers.set('vary', 'origin'); } return r; };
+  const m = request.method;
+  if (m === 'OPTIONS') {
+    if (!o) return err(403, 'forbidden');
+    return new Response(null, { status: 204, headers: { 'access-control-allow-origin': o, 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400', vary: 'origin' } });
+  }
+  if (seg[1] === 'stats' && m === 'GET') return cors(ok(await waitlist.stats(env)), '*'); // 「벌써 N명」 — 숫자만
+  if (!seg[1] && m === 'POST') {
+    if (!o) return err(403, 'forbidden');
+    const { body, error } = await readJson(request, 4000);
+    if (error) return cors(err(400, error));
+    const c = waitlist.cleanSignup(body);
+    if (c.error) return cors(err(c.error === 'bot' ? 200 : 400, c.error));
+    try { return cors(ok(await waitlist.join(env, c.data, { ip: request.headers.get('cf-connecting-ip') || '' }))); }
+    catch (e) { if (e.status === 429) return cors(err(429, 'too_many')); throw e; }
+  }
+  return err(404, 'not_found');
+}
 
 // 몸 = 파일 바이트 그대로(multipart 를 풀지 않아 무료 요금제 CPU 를 아낀다). 이름 등은 머리(x-*, URL 인코딩)로.
 async function addAsset(request, env, origin) {
