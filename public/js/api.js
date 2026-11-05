@@ -63,5 +63,6 @@ export const api = {
   saveDm: (body) => call('POST', '/api/dm', body),
   dmCheck: () => call('GET', '/api/dm/check'),
   dmRun: () => call('POST', '/api/dm/run', {}),
+  dmSubscribe: () => call('POST', '/api/dm/subscribe', {}),
   async waitlistCsv() { const r = await fetch('/api/waitlist/admin.csv', { headers: { authorization: 'Bearer ' + API.token } }); if (!r.ok) throw new ApiError(r.status, null); return r.blob(); },
 };

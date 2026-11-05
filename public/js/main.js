@@ -571,7 +571,7 @@ async function sheetWait() {
 }
 
 // ---------- 자동 DM ----------
-const DM_STATE = { sent: '보냄', dup: '이미 보냄', fail: '실패', retry: '다시 볼 것', sending: '보내는 중' };
+const DM_STATE = { sent: '보냄', dup: '이미 보냄', fail: '실패', retry: '다시 보낼 것', sending: '보내는 중' };
 async function sheetDm() {
   const st = S.sheet;
   if (!st.data) {
@@ -580,7 +580,7 @@ async function sheetDm() {
     if (S.sheet !== st) return;
     api.dmCheck().then((r) => { if (S.sheet === st) { st.check = r; sheetDm(); } }).catch(() => { /* 권한 점검은 덤 */ });
   }
-  const { settings: s, accounts, counts, recent } = st.data;
+  const { settings: s, accounts, counts, recent, hook } = st.data;
   const b = S.data.brand;
   const t = (id, label, value, rows = 0, ph = '') => {
     const f = rows ? el('textarea', { id, rows, placeholder: ph }) : el('input', { id, type: 'text', placeholder: ph });
@@ -594,20 +594,37 @@ async function sheetDm() {
     const parts = [];
     if (!s.on) parts.push(el('div', { class: 'note ok' }, `@${a.username} — 꺼져 있어요`));
     else if (a.pausedUntil > now) parts.push(el('div', { class: 'note bad' }, `@${a.username} — 멈춤(${hm(a.pausedUntil)}에 다시 봐요): ${a.error}`));
-    else if (!a.since) parts.push(el('div', { class: 'note ok' }, `@${a.username} — 1분 안에 시작해요(켠 뒤에 들어온 댓글부터)`));
+    else if (!a.lastRun) parts.push(el('div', { class: 'note ok' }, `@${a.username} — 곧 시작해요(지난 7일 댓글까지)`));
     else parts.push(el('div', { class: 'note ok' }, `@${a.username} — 보는 중 · 마지막 확인 ${a.lastRun ? ago(a.lastRun) : '—'}${a.error ? ' · ' + a.error : ''}`));
     if (a.msgError) parts.push(el('div', { class: 'note' }, `스토리 답장·DM 읽기 안 됨 — ${a.msgError}`));
     if (c && c.missing && c.missing.length) parts.push(el('div', { class: 'note bad' }, `권한 없음: ${c.missing.join(' · ')}`));
     return parts;
   };
   const missing = st.check && st.check.accounts.some((x) => x.missing && x.missing.length);
+  const hookOn = hook && hook.lastAt && now - hook.lastAt < 3 * DAY;
+  const subscribed = st.check && st.check.accounts.some((x) => x.hookFields && x.hookFields.includes('comments'));
+  const copyRow = (label, value) => el('div', { class: 'row nowrap', style: 'font-size:12px' }, el('span', { class: 'muted', style: 'flex:none' }, label), el('code', { class: 'mono', style: 'flex:1 1 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0' }, value),
+    el('button', { class: 'btn sm ghost', type: 'button', style: 'flex:none', onclick: async () => { try { await navigator.clipboard.writeText(value); toast('복사했어요'); } catch { toast('복사 못 했어요', true); } } }, '복사'));
+  const live = el('details', { open: !hookOn || undefined },
+    el('summary', {}, el('span', { class: 'row', style: 'display:inline-flex;gap:6px' }, (hookOn ? el('i', { class: 'led' }) : el('i', { class: 'led', style: 'background:var(--rule);box-shadow:none' })), hookOn ? `바로 받는 중 · 마지막 알림 ${ago(hook.lastAt)}` : '바로 받기(웹훅) 아직 — 지금은 20초마다 확인')),
+    el('div', { class: 'field', style: 'margin-top:8px;grid-template-columns:minmax(0,1fr)' },
+      el('ol', { style: 'margin:0;padding-left:20px;font-size:13px;line-height:1.6' },
+        el('li', {}, 'Meta 앱 › Instagram API › API setup with Unified login › 웹훅 구성 — 아래 주소·토큰 넣고 comments · messages 구독'),
+        el('li', {}, subscribed ? '이 계정 알림 연결됨 ✓' : '아래 「Meta 에 알리기」(이 계정 알림을 이 앱으로)')),
+      hook ? copyRow('주소', hook.url) : null, hook ? copyRow('토큰', hook.verifyToken) : null,
+      el('div', { class: 'row' }, el('button', { class: 'btn sm', type: 'button', disabled: !accounts.length, onclick: async (e) => {
+        busy(e.currentTarget, true);
+        try { const r = await api.dmSubscribe(); const bad = r.accounts.filter((x) => !x.ok); toast(bad.length ? `실패 — ${bad[0].error}` : 'Meta 에 알렸어요', !!bad.length); st.check = null; st.data = null; sheetDm(); }
+        catch (er) { fail(er); busy(e.currentTarget, false); }
+      } }, el('span', {}, 'Meta 에 알리기')))));
   const body = el('div', { class: 'body' },
-    el('div', { class: 'big' }, el('b', { class: 'mono' }, String(counts.sent)), el('span', {}, `명에게 보냄 · 오늘 ${counts.today}${counts.failed ? ` · 실패 ${counts.failed}` : ''}`)),
+    el('div', { class: 'big' }, el('b', { class: 'mono' }, String(counts.sent)), el('span', {}, `개 보냄 · 오늘 ${counts.today}${counts.failed ? ` · 실패 ${counts.failed}` : ''}`)),
     accounts.length ? accounts.flatMap(accNote) : el('div', { class: 'note' }, 'Instagram 줄이 연결되면 시작해요(채널)'),
     missing ? el('details', { open: true }, el('summary', {}, '권한 켜는 법 (한 번)'), el('ol', { style: 'margin:6px 0 0;padding-left:20px;font-size:13px;line-height:1.6' },
       el('li', {}, 'Meta 앱 › 이용 사례 › Instagram API › 구성 「Instagram API(통합 로그인)」에 instagram_manage_comments · instagram_manage_messages 더하기'),
       el('li', {}, '채널 › IG › 다시 연결(새 권한으로 토큰 받기)'),
       el('li', {}, 'Instagram 앱 › 설정 › 메시지 및 스토리 답장 › 메시지 제어 › 연결된 도구 › 「메시지 접근 허용」 켜기'))) : null,
+    live,
     chk('dOn', '자동 DM 켜기 — 댓글·답장에 키워드가 오면 얼리버드 링크를 DM 으로', s.on),
     t('dWords', `키워드 — 브랜드 시트의 「${b.kw.ko}」「${b.kw.en}」는 늘 들어가요`, s.words, 0, '쉼표로'),
     chk('dNum', '번호 댓글(1~4)에도 — 컬러 고르기 글', s.numbers),
@@ -616,7 +633,7 @@ async function sheetDm() {
     t('dTextEn', 'DM 글 EN', s.text.en, 6),
     t('dRepKo', '공개 답글 KO — 줄마다 하나, 그중 하나를 골라 달아요(비우면 안 달아요)', s.replies.ko.join('\n'), 4),
     t('dRepEn', '공개 답글 EN', s.replies.en.join('\n'), 4),
-    el('p', { class: 'muted', style: 'margin:0;font-size:12px' }, '한 사람에게 한 번 · 댓글 뒤 7일 안 · 한 시간 150개까지 · 1분마다 확인'),
+    el('p', { class: 'muted', style: 'margin:0;font-size:12px' }, '댓글마다 한 번(또 달면 또) · 댓글 뒤 7일 안(Meta 규칙) · 한 시간 200개, 넘으면 다음 시간에'),
     recent.length ? el('details', {}, el('summary', {}, `최근 ${recent.length}개`), el('div', { class: 'log' }, recent.map((r) => el('div', {},
       el('span', { class: 'mono' }, ago(r.at)),
       el('span', { class: r.state === 'fail' ? 'bad' : r.state === 'retry' ? 'warn' : '' }, `@${r.username || '?'} · ${r.kind === 'comment' ? '댓글' : '메시지'} 「${r.text || '…'}」 → ${DM_STATE[r.state] || r.state}${r.error ? ' — ' + r.error : ''}`))))) : null);

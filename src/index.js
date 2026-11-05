@@ -27,11 +27,12 @@ export default {
     }
   },
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(cron(env, controller.scheduledTime || Date.now()));
+    await cron(env, controller.scheduledTime || Date.now()); // 한 틱이 40초쯤 산다(20초마다 DM 확인)
   },
 };
 
-// 크론 하나(1분) — 예약 게시 + 자동 DM. 00:00~00:04 UTC(09:00 KST) 중 첫 틱은 하루 일(지표·토큰·정리)도 — 그 틱엔 DM 을 쉰다(외부 호출 50번 한도).
+// 크론 하나(1분) — 예약 게시 + 자동 DM(20초마다). 00:00~00:04 UTC(09:00 KST) 중 첫 틱은 하루 일(지표·토큰·정리)도 — 그 틱엔 DM 을 쉰다(외부 호출 50번 한도).
+const DM_ROUNDS = 3;
 export const isDailyTick = (ms) => { const d = new Date(ms); return d.getUTCHours() === 0 && d.getUTCMinutes() < 5; };
 async function claimDaily(env, at) {
   const day = new Date(at + 9 * 3600e3).toISOString().slice(0, 10);
@@ -50,10 +51,13 @@ async function cron(env, at) {
       await dm.dmCleanup(env, at);
       return;
     }
+    // 자동 DM — 한 틱 안에서 20초마다 세 번(웹훅이 놓친 것까지). 메시지함은 첫 번에만 본다
     const used = Math.min(40, due.filter((o) => o.result !== 'daily_limit').length * 30); // publishDue 가 잡는 몫(보수적)
-    const budget = 44 - used;
-    if (budget >= 2) {
-      const r = await dm.runDm(env, { now: at, budget });
+    let left = 44 - used;
+    for (let i = 0; i < DM_ROUNDS && left >= 2; i++) {
+      if (i) await new Promise((res) => setTimeout(res, Math.max(0, at + i * 20e3 - Date.now())));
+      const r = await dm.runDm(env, { now: Date.now(), budget: Math.floor(left / (DM_ROUNDS - i)), messages: i === 0 });
+      left -= r.calls;
       if (r.sent || r.failed) console.log('dm', JSON.stringify(r));
     }
   } catch (e) { console.error('cron', e && e.stack || e); }
@@ -108,6 +112,23 @@ async function api(request, env, ctx, url) {
   if (seg[0] === 'meta' && seg[1] === 'deletion' && m === 'GET') {
     const code = String(url.searchParams.get('code') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
     return new Response(code ? `삭제 요청 ${code} — 처리됨. 이 계정의 토큰과 연결 정보는 지워졌습니다.` : '삭제 요청 번호가 없습니다.', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
+
+  // Instagram 웹훅 — 댓글·스토리 답장을 Meta 가 바로 보낸다(앱 시크릿 서명 확인). 자동 DM 이 받는다
+  if (seg[0] === 'meta' && seg[1] === 'ig' && seg[2] === 'webhook') {
+    if (m === 'GET') {
+      const c = await dm.hookVerify(env, url);
+      return c == null ? new Response('forbidden', { status: 403 }) : new Response(c, { headers: { 'content-type': 'text/plain' } });
+    }
+    if (m === 'POST') {
+      const raw = await request.text();
+      if (raw.length > 1e6) return err(413, 'too_large');
+      if (!(await dm.hookSignatureOk(env, raw, request.headers.get('x-hub-signature-256')))) return err(403, 'bad_signature');
+      let payload = null;
+      try { payload = JSON.parse(raw); } catch { return ok({ ok: true }); }
+      ctx.waitUntil(dm.handleHook(env, payload).then((r) => { if (r.sent || r.failed) console.log('hook', JSON.stringify(r)); }).catch((e) => console.error('hook', e && e.stack || e)));
+      return ok({ ok: true }); // Meta 에는 바로 200 — 보내기는 뒤에서
+    }
   }
 
   // 대기 명단 — 홈페이지(pensieve.kr/early)가 부른다. 열쇠 없이, 홈페이지 출처에서만 받는다.
@@ -199,10 +220,11 @@ async function api(request, env, ctx, url) {
   }
   if (seg[0] === 'sync' && m === 'POST') return ok({ metrics: await ops.collectMetrics(env) });
   // 자동 DM — 설정 · 상태 · 기록 · 권한 점검 · 지금 확인
-  if (seg[0] === 'dm' && !seg[1] && m === 'GET') return ok(await dm.dmOverview(env));
+  if (seg[0] === 'dm' && !seg[1] && m === 'GET') return ok(await dm.dmOverview(env, Date.now(), origin));
   if (seg[0] === 'dm' && !seg[1] && m === 'POST') { const { body, error } = await readJson(request, 20000); if (error) return err(400, error); return ok({ settings: await dm.setDm(env, body) }); }
   if (seg[0] === 'dm' && seg[1] === 'check' && m === 'GET') return ok({ accounts: await dm.dmCheck(env), need: meta.DM_SCOPES });
-  if (seg[0] === 'dm' && seg[1] === 'run' && m === 'POST') { const r = await dm.runDm(env, { now: Date.now(), budget: 30 }); return ok({ run: r, ...(await dm.dmOverview(env)) }); }
+  if (seg[0] === 'dm' && seg[1] === 'run' && m === 'POST') { const r = await dm.runDm(env, { now: Date.now(), budget: 30 }); return ok({ run: r, ...(await dm.dmOverview(env, Date.now(), origin)) }); }
+  if (seg[0] === 'dm' && seg[1] === 'subscribe' && m === 'POST') return ok({ accounts: await dm.hookSubscribe(env) });
   // 대기 명단 관리 — 요약 · CSV · 선착순 인원
   if (seg[0] === 'waitlist' && seg[1] === 'admin' && m === 'GET') return ok(await waitlist.summary(env));
   if (seg[0] === 'waitlist' && seg[1] === 'admin' && m === 'DELETE') return ok({ removed: await waitlist.remove(env, url.searchParams.get('email')) });

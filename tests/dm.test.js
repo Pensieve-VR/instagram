@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { d1 } from './d1.js';
 import { resetReady } from '../lib/db.js';
 import { seal } from '../lib/crypto.js';
-import { normalizeDm, matches, slugOf, linkFor, fill, runDm, getDm, setDm, dmOverview } from '../lib/dm.js';
+import { createHmac } from 'node:crypto';
+import { normalizeDm, matches, slugOf, linkFor, fill, runDm, getDm, setDm, dmOverview, handleHook, hookToken, hookVerify, hookSignatureOk } from '../lib/dm.js';
 
 const KW = { ko: '르네', en: 'RENE' };
 const S = normalizeDm({});
@@ -97,51 +98,52 @@ function world(t0) {
 }
 const cm = (id, text, ms, user = 'fan1', uid = 'U1') => ({ id, text, timestamp: iso(ms), username: user, from: { id: uid, username: user } });
 
-test('첫 틱은 기준만 잡는다 — 예전 댓글엔 보내지 않는다', async () => {
+test('처음 켜면 지난 7일 안 댓글까지 보낸다 — 그보다 오래된 건 Meta 가 막아 건너뛴다', async () => {
   const env = await setup();
   const t0 = Date.now();
   const W = world(t0);
-  W.media = [{ id: 'M1', comments_count: 1 }]; W.comments.M1 = [cm('c1', '르네', t0 - 3600e3)];
+  W.media = [{ id: 'M1', comments_count: 2 }];
+  W.comments.M1 = [cm('c0', '르네', t0 - 8 * 86400e3, 'old', 'U0'), cm('c1', '르네', t0 - 3600e3)];
   await runDm(env, { now: t0 });
-  assert.equal(W.calls.filter((c) => c.method === 'POST').length, 0);
-  assert.equal(W.calls.filter((c) => c.path.endsWith('/comments')).length, 0, '기준 틱엔 댓글을 읽지 않는다');
-  // 다음 틱 — 숫자가 그대로면 댓글도 안 읽는다
-  await runDm(env, { now: t0 + 60e3 });
-  assert.equal(W.calls.filter((c) => c.path.endsWith('/comments')).length, 0);
+  const sends = W.calls.filter((c) => c.path === `/${IG}/messages`);
+  assert.deepEqual(sends.map((c) => c.body.recipient.comment_id), ['c1']);
+  // 다음 틱 — 숫자가 그대로면 댓글을 다시 읽지 않는다
+  const n = W.calls.filter((c) => c.path.endsWith('/comments')).length;
+  await runDm(env, { now: t0 + 20e3 });
+  assert.equal(W.calls.filter((c) => c.path.endsWith('/comments')).length, n);
 });
 
-test('새 키워드 댓글 → 비공개 답장 DM(링크) + 공개 답글 · 같은 사람 두 번째는 보내지 않는다', async () => {
+test('키워드 댓글 → 비공개 답장 DM(링크) + 공개 답글 · 같은 사람이 또 달면 또 보낸다', async () => {
   const env = await setup();
   const t0 = Date.now();
   const W = world(t0);
-  await runDm(env, { now: t0 }); // 기준
+  await runDm(env, { now: t0 });
   W.media = [{ id: 'M1', comments_count: 4 }];
   W.comments.M1 = [
     cm('c1', '르네', t0 + 10e3),
     cm('c2', '귀엽다', t0 + 11e3, 'fan2', 'U2'),
-    cm('c3', '저도 르네요', t0 + 12e3), // 같은 사람(U1)
+    cm('c3', '저도 르네요', t0 + 12e3), // 같은 사람(U1) 이 또
     cm('c4', '르네', t0 + 13e3, 'descartes_works', 'OWN'), // 우리 계정
   ];
-  const out = await runDm(env, { now: t0 + 60e3 });
+  const out = await runDm(env, { now: t0 + 20e3 });
   const sends = W.calls.filter((c) => c.path === `/${IG}/messages`);
-  assert.equal(sends.length, 1);
-  assert.deepEqual(sends[0].body.recipient, { comment_id: 'c1' });
+  assert.deepEqual(sends.map((c) => c.body.recipient.comment_id), ['c1', 'c3']);
   assert.match(sends[0].body.message.text, /https:\/\/www\.pensieve\.kr\/r\/ig_dm_p1/);
   assert.equal(sends[0].auth, 'Bearer TOKEN-XYZ');
   const replies = W.calls.filter((c) => c.path === '/c1/replies');
   assert.equal(replies.length, 1);
   assert.ok(S.replies.ko.includes(replies[0].body.message));
   const r = rows(env);
-  assert.deepEqual(r.map((x) => [x.id, x.state]), [['c:c1', 'sent'], ['c:c3', 'dup']]);
+  assert.deepEqual(r.map((x) => [x.id, x.state]), [['c:c1', 'sent'], ['c:c3', 'sent']]);
   assert.equal(r[0].link, 'https://www.pensieve.kr/r/ig_dm_p1');
-  assert.equal(out.sent, 1);
-  // 다음 틱 — 숫자가 그대로면 다시 읽지 않고, 다시 읽어도 두 번 보내지 않는다
+  assert.equal(out.sent, 2);
+  // 다시 읽어도 같은 댓글엔 두 번 보내지 않는다
   W.media = [{ id: 'M1', comments_count: 5 }];
-  await runDm(env, { now: t0 + 120e3 });
-  assert.equal(W.calls.filter((c) => c.path === `/${IG}/messages`).length, 1);
+  await runDm(env, { now: t0 + 40e3 });
+  assert.equal(W.calls.filter((c) => c.path === `/${IG}/messages`).length, 2);
 });
 
-test('꺼 두면 Meta 를 부르지도 않고, 다시 켜면 그 뒤 댓글부터', async () => {
+test('꺼 두면 Meta 를 부르지도 않고, 다시 켜면 그동안 못 보낸 것까지(7일 안) 보낸다', async () => {
   const env = await setup();
   const t0 = Date.now();
   const W = world(t0);
@@ -153,12 +155,8 @@ test('꺼 두면 Meta 를 부르지도 않고, 다시 켜면 그 뒤 댓글부�
   await runDm(env, { now: t0 + 60e3 });
   assert.equal(W.calls.length, before);
   await setDm(env, { on: true });
-  await runDm(env, { now: t0 + 120e3 }); // 다시 기준
-  W.media = [{ id: 'M1', comments_count: 2 }];
-  W.comments.M1.push(cm('c2', '르네', t0 + 130e3, 'fan2', 'U2'));
-  await runDm(env, { now: t0 + 180e3 });
-  const sends = W.calls.filter((c) => c.path === `/${IG}/messages`);
-  assert.deepEqual(sends.map((c) => c.body.recipient.comment_id), ['c2'], '꺼져 있던 동안의 댓글엔 보내지 않는다');
+  await runDm(env, { now: t0 + 120e3 });
+  assert.deepEqual(W.calls.filter((c) => c.path === `/${IG}/messages`).map((c) => c.body.recipient.comment_id), ['c1']);
 });
 
 test('댓글 뒤 7일이 지나면 보내지 않는다(비공개 답장 창)', async () => {
@@ -223,7 +221,7 @@ test('스토리 답장·DM 에 키워드 → 그 사람에게 링크(우리 메�
   W.convs = [
     { id: 'cv1', updated_time: iso(t0 + 9e3), messages: { data: [msg('m2', '르네', t0 + 9e3, { id: 'U9', username: 'fan9' }), msg('m1', '안녕', t0 + 8e3, { id: 'U9', username: 'fan9' })] } },
     { id: 'cv2', updated_time: iso(t0 + 7e3), messages: { data: [msg('m3', '르네예요 여기 → https://www.pensieve.kr/r/ig_dm_msg', t0 + 7e3, { id: 'X', username: 'descartes_works' })] } },
-    { id: 'cv3', updated_time: iso(t0 - 9e6), messages: { data: [msg('m4', '르네', t0 - 9e6, { id: 'U8', username: 'old' })] } },
+    { id: 'cv3', updated_time: iso(t0 - 30 * 3600e3), messages: { data: [msg('m4', '르네', t0 - 30 * 3600e3, { id: 'U8', username: 'old' })] } }, // 24시간 창 밖
     { id: 'cv4', updated_time: iso(t0 + 6e3), messages: { data: [msg('m5', '2', t0 + 6e3, { id: 'U7', username: 'fan7' })] } }, // DM 의 번호는 키워드가 아니다
   ];
   await runDm(env, { now: t0 + 60e3 });
@@ -252,4 +250,74 @@ test('메시지 읽기가 막히면 댓글은 계속 — 메시지만 쉰다', a
   const n = W.calls.filter((c) => c.path === `/${IG}/conversations`).length;
   await runDm(env, { now: t0 + 120e3 });
   assert.equal(W.calls.filter((c) => c.path === `/${IG}/conversations`).length, n, '메시지는 한동안 다시 묻지 않는다');
+});
+
+// ---------- 웹훅 ----------
+const commentHook = (id, text, from, media = 'M1', t = Date.now()) => ({ object: 'instagram', entry: [{ id: IG, time: Math.floor(t / 1000), changes: [{ field: 'comments', value: { id, text, from, media: { id: media } } }] }] });
+
+test('웹훅 확인 — 토큰이 맞을 때만 challenge · 서명은 앱 시크릿 HMAC', async () => {
+  const env = await setup();
+  const tk = await hookToken(env);
+  assert.match(tk, /^rene-[A-Za-z0-9_-]{24}$/);
+  const u = (t) => new URL(`https://x/api/meta/ig/webhook?hub.mode=subscribe&hub.verify_token=${t}&hub.challenge=4242`);
+  assert.equal(await hookVerify(env, u(tk)), '4242');
+  assert.equal(await hookVerify(env, u('nope')), null);
+  const raw = JSON.stringify(commentHook('c1', '르네', { id: 'U1', username: 'a' }));
+  const sig = 'sha256=' + createHmac('sha256', 'sec').update(raw).digest('hex');
+  assert.equal(await hookSignatureOk(env, raw, sig), true);
+  assert.equal(await hookSignatureOk(env, raw + ' ', sig), false);
+  assert.equal(await hookSignatureOk(env, raw, ''), false);
+});
+
+test('웹훅 댓글 → 바로 DM · 크론이 나중에 봐도 두 번 안 보낸다', async () => {
+  const env = await setup();
+  const t0 = Date.now();
+  const W = world(t0);
+  await handleHook(env, commentHook('c9', '르네 주세요', { id: 'U5', username: 'fan5' }, 'M1', t0), t0);
+  const sends = W.calls.filter((c) => c.path === `/${IG}/messages`);
+  assert.deepEqual(sends.map((c) => c.body.recipient), [{ comment_id: 'c9' }]);
+  assert.match(sends[0].body.message.text, /ig_dm_p1/);
+  assert.equal(W.calls.filter((c) => c.path === '/c9/replies').length, 1);
+  W.media = [{ id: 'M1', comments_count: 1 }]; W.comments.M1 = [cm('c9', '르네 주세요', t0, 'fan5', 'U5')];
+  await runDm(env, { now: t0 + 20e3 });
+  assert.equal(W.calls.filter((c) => c.path === `/${IG}/messages`).length, 1);
+  // 우리 답글(같은 계정)·키워드 없는 댓글은 지나간다
+  await handleHook(env, commentHook('c10', '르네', { id: IG, username: 'descartes_works' }), t0);
+  await handleHook(env, commentHook('c11', '예쁘다', { id: 'U6', username: 'fan6' }), t0);
+  assert.equal(W.calls.filter((c) => c.path === `/${IG}/messages`).length, 1);
+});
+
+test('웹훅 메시지(스토리 답장) → 바로 링크 · 우리가 보낸 메아리는 무시 · 꺼져 있으면 아무것도', async () => {
+  const env = await setup();
+  const t0 = Date.now();
+  const W = world(t0);
+  const msgHook = (mid, text, sender, echo = false) => ({ object: 'instagram', entry: [{ id: IG, time: Math.floor(t0 / 1000), messaging: [{ sender: { id: sender }, recipient: { id: IG }, timestamp: t0, message: { mid, text, ...(echo ? { is_echo: true } : {}), reply_to: { story: { id: 'st1' } } } }] }] });
+  await handleHook(env, msgHook('mid1', '르네', 'U7'), t0);
+  await handleHook(env, msgHook('mid2', '르네예요 → https://www.pensieve.kr/r/ig_dm_msg', IG, true), t0);
+  await handleHook(env, msgHook('mid1', '르네', 'U7'), t0); // 같은 알림이 또 와도
+  const sends = W.calls.filter((c) => c.path === `/${IG}/messages`);
+  assert.deepEqual(sends.map((c) => c.body.recipient), [{ id: 'U7' }]);
+  await setDm(env, { on: false });
+  const n = W.calls.length;
+  await handleHook(env, msgHook('mid3', '르네', 'U8'), t0);
+  assert.equal(W.calls.length, n);
+});
+
+test('Worker 길 — GET 확인 · 서명 틀리면 403 · 맞으면 200 뒤에 처리', async () => {
+  const env = await setup();
+  const t0 = Date.now();
+  const W = world(t0);
+  const worker = (await import('../src/index.js')).default;
+  const waits = [];
+  const ctx = { waitUntil: (p) => waits.push(p) };
+  const tk = await hookToken(env);
+  const g = await worker.fetch(new Request(`https://instagram.pensieve.kr/api/meta/ig/webhook?hub.mode=subscribe&hub.verify_token=${tk}&hub.challenge=77`), env, ctx);
+  assert.equal(g.status, 200); assert.equal(await g.text(), '77');
+  const raw = JSON.stringify(commentHook('c20', '르네', { id: 'U9', username: 'fan9' }));
+  const bad = await worker.fetch(new Request('https://instagram.pensieve.kr/api/meta/ig/webhook', { method: 'POST', body: raw, headers: { 'x-hub-signature-256': 'sha256=' + '0'.repeat(64) } }), env, ctx);
+  assert.equal(bad.status, 403);
+  const good = await worker.fetch(new Request('https://instagram.pensieve.kr/api/meta/ig/webhook', { method: 'POST', body: raw, headers: { 'x-hub-signature-256': 'sha256=' + createHmac('sha256', 'sec').update(raw).digest('hex') } }), env, ctx);
+  assert.equal(good.status, 200);
+  await Promise.all(waits);
+  assert.deepEqual(W.calls.filter((c) => c.path === `/${IG}/messages`).map((c) => c.body.recipient), [{ comment_id: 'c20' }]);
 });
