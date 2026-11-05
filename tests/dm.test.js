@@ -258,7 +258,7 @@ const commentHook = (id, text, from, media = 'M1', t = Date.now()) => ({ object:
 test('웹훅 확인 — 토큰이 맞을 때만 challenge · 서명은 앱 시크릿 HMAC', async () => {
   const env = await setup();
   const tk = await hookToken(env);
-  assert.match(tk, /^rene-[A-Za-z0-9_-]{24}$/);
+  assert.equal(tk, 'rene-ig-webhook'); // 비밀 아님 — POST 는 앱 시크릿 서명으로 지킨다
   const u = (t) => new URL(`https://x/api/meta/ig/webhook?hub.mode=subscribe&hub.verify_token=${t}&hub.challenge=4242`);
   assert.equal(await hookVerify(env, u(tk)), '4242');
   assert.equal(await hookVerify(env, u('nope')), null);
